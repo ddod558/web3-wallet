@@ -6,75 +6,28 @@
     <title>Real Web3 Wallet</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/web3@4.4.0/dist/web3.min.js"></script>
+    <!-- QR Code 生成器 -->
+    <script src="https://cdn.jsdelivr.net/npm/qrcode.js@1.0.0/qrcode.min.js"></script>
 </head>
 <body class="bg-slate-100 min-h-screen p-6">
 
 <div class="max-w-md mx-auto">
-    <div class="flex justify-between items-center mb-8">
-        <h1 class="text-3xl font-bold">Real Wallet</h1>
-        <button onclick="connectImToken()" 
-                class="px-6 py-3 bg-blue-600 text-white rounded-3xl font-medium flex items-center gap-2 active:scale-95">
-            🔗 连接 imToken
-        </button>
-    </div>
+    <h1 class="text-3xl font-bold text-center mb-8">Real Web3 Wallet</h1>
 
-    <div class="bg-gradient-to-br from-blue-600 to-purple-700 rounded-3xl p-8 text-white mb-8 shadow-2xl">
-        <p class="opacity-75 text-sm">ETH 余额</p>
+    <div class="bg-gradient-to-br from-blue-600 to-purple-700 rounded-3xl p-8 text-white mb-8">
+        <p class="opacity-75">ETH 余额</p>
         <h2 id="balance" class="text-6xl font-bold mt-3">0.0000</h2>
         <p id="address" class="mt-8 font-mono text-sm break-all bg-white/20 p-4 rounded-2xl">未连接钱包</p>
     </div>
 
-    <div class="grid grid-cols-2 gap-4">
-        <button onclick="createWallet()" class="bg-white p-6 rounded-3xl shadow">创建本地钱包</button>
-        <button onclick="signMessage()" class="bg-white p-6 rounded-3xl shadow">签名消息</button>
-    </div>
-</div>
+    <button onclick="showConnectQR()" 
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-3xl text-xl font-medium mb-4">
+        🔗 连接 imToken
+    </button>
 
-<script>
-let web3 = new Web3("https://rpc.sepolia.org");
-let currentAccount = null;
-
-// =============== 真正的 imToken 连接 ===============
-async function connectImToken() {
-    try {
-        if (confirm("即将连接 imToken\n\n请确保 imToken App 已打开")) {
-            
-            // 生成一个临时的 WalletConnect URI（演示用，实际项目中需要后端或完整 SDK）
-            const wcUri = "wc:2.0@1?bridge=https%3A%2F%2Fbridge.walletconnect.org&key=abc123";
-            
-            // imToken Deep Link
-            const deepLink = `imtokenv2://wc?uri=${encodeURIComponent(wcUri)}`;
-            
-            // 尝试唤起 imToken
-            window.location.href = deepLink;
-
-            setTimeout(() => {
-                alert("如果 imToken 没有自动打开：\n\n1. 手动打开 imToken\n2. 进入「发现」→「DApp浏览器」\n3. 输入你的网站地址");
-            }, 1500);
-        }
-    } catch (e) {
-        alert("连接失败: " + e.message);
-    }
-}
-
-// 创建本地钱包（备用）
-function createWallet() {
-    const account = web3.eth.accounts.create();
-    currentAccount = account.address;
-    document.getElementById("address").innerText = currentAccount;
-    alert("本地钱包创建成功！\n\n地址：\n" + currentAccount);
-}
-
-// 签名消息
-async function signMessage() {
-    if (!currentAccount) {
-        return alert("请先连接 imToken 或创建本地钱包");
-    }
-    const msg = prompt("请输入要签名的消息：", "Hello imToken!");
-    if (msg) {
-        alert(`签名成功！\n消息：${msg}\n\n（当前为演示模式）`);
-    }
-}
-</script>
-</body>
-</html>
+    <!-- QR Code 弹窗 -->
+    <div id="qrModal" class="hidden fixed inset-0 bg-black/70 flex items-center justify-center">
+        <div class="bg-white rounded-3xl p-6 w-full max-w-xs">
+            <h3 class="text-center font-bold mb-4">用 imToken 扫描连接</h3>
+            <div id="qrcode" class="mx-auto bg-white p-4 rounded-2xl"></div>
+            <p class="text-center text-sm text-slate-500 mt
