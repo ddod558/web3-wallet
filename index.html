@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>多链钱包（三模式·Token Core稳定版）</title>
-  <!-- 必须先加载 Token Core，再加载其他脚本 -->
+  <title>多链钱包（三模式·稳定版）</title>
+  <!-- 优先加载依赖库 -->
   <script src="https://cdn.jsdelivr.net/npm/@trustwallet/wallet-core@3.4.0/dist/browser/wallet-core.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/web3@4.0.1/dist/web3.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
@@ -18,8 +18,10 @@
 
     body {
       min-height: 100vh;
-      background: url('https://i.imgur.com/NlF8VQd.png') no-repeat center center fixed;
+      /* 修复：高清稳定的紫色哈基米+Pepe全屏背景 */
+      background: url('https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/03130390083e4038900f3f00d3400311~tplv-a9rns2rl98-image.image') no-repeat center center fixed;
       background-size: cover;
+      background-color: #1a1238; /* 兜底深色，防止图片加载失败全黑 */
       color: #fff;
       padding: 30px 15px;
       position: relative;
@@ -149,14 +151,12 @@
         <button class="btn" onclick="showCreate()">创建钱包</button>
       </div>
 
-      <!-- 导入私钥面板 -->
       <div id="importBox" style="display:none;margin-top:15px;">
         <textarea id="privateKey" placeholder="输入钱包私钥"></textarea>
         <input type="password" id="pwdImport" placeholder="设置加密密码">
         <button class="btn" onclick="importByTokenCore()">确认导入(加密)</button>
       </div>
 
-      <!-- 创建钱包面板（Token Core生成助记词+私钥） -->
       <div id="createBox" style="display:none;margin-top:15px;">
         <input type="password" id="pwdCreate" placeholder="设置钱包加密密码">
         <div id="mnemonicView" class="mnemonic-box" style="display:none;"></div>
@@ -190,16 +190,15 @@
   </div>
 
 <script>
-// 全局标记：Token Core 是否初始化完成
 let coreReady = false;
 
-// 等待页面完全加载后再初始化 Token Core
+// 页面加载完成后初始化Token Core
 window.addEventListener('load', async () => {
   await WalletCore.init();
   coreReady = true;
+  console.log("✅ Token Core 内核加载完成");
 });
 
-// 链配置
 const RPC = {
   1: "https://mainnet.infura.io/v3/YOUR_KEY",
   56: "https://bsc-dataseed.binance.org",
@@ -226,7 +225,6 @@ let encryptedPrivateKey = null;
 let sessionPwd = null;
 let tempMnemonic = null;
 
-// 面板切换
 function showImport(){
   document.getElementById("importBox").style.display="block";
   document.getElementById("createBox").style.display="none";
@@ -237,49 +235,38 @@ function showCreate(){
   document.getElementById("mnemonicView").style.display="none";
 }
 
-// ========== 1. Token Core 创建钱包（增加就绪判断） ==========
 async function createWallet(){
   if (!coreReady) return alert("Token Core 内核正在加载，请稍后再试！");
-
   const pwd = document.getElementById("pwdCreate").value.trim();
   if(!pwd) return alert("请设置加密密码");
 
   try{
     coreChainId = parseInt(document.getElementById("network").value);
-
-    // Token Core 底层生成 12位助记词
     tempMnemonic = WalletCore.Mnemonic.create(128).phrase();
-    // 从助记词导出私钥
     const hd = WalletCore.HDWallet.createWithMnemonic(tempMnemonic, "");
     const corePk = hd.getKeyForCoin(WalletCore.CoinType.ethereum);
     const pkHex = corePk.hexString();
 
-    // AES 加密私钥
     encryptedPrivateKey = CryptoJS.AES.encrypt(pkHex, pwd).toString();
     sessionPwd = pwd;
 
-    // 导出地址
     const pubKey = corePk.getPublicKey(false);
     userAddress = WalletCore.EthereumAddress.createWithPublicKey(pubKey).description();
     isLocalWallet = true;
 
-    // 展示助记词（仅本次会话）
     document.getElementById("mnemonicView").innerText = "您的助记词：\n" + tempMnemonic;
     document.getElementById("mnemonicView").style.display="block";
 
     const dom = document.getElementById("walletAddr");
     dom.style.display = "block";
     dom.innerHTML = "✅ Token Core 创建钱包成功：" + userAddress;
-
   }catch(e){
     alert("创建钱包失败："+e.message);
   }
 }
 
-// ========== 2. Token Core 导入私钥（AES加密，增加就绪判断） ==========
 async function importByTokenCore(){
   if (!coreReady) return alert("Token Core 内核正在加载，请稍后再试！");
-
   const pkHex = document.getElementById("privateKey").value.trim();
   const pwd = document.getElementById("pwdImport").value.trim();
   if(!pkHex || !pwd) return alert("请输入私钥和加密密码");
@@ -304,7 +291,6 @@ async function importByTokenCore(){
   }
 }
 
-// ========== 3. ImToken 连接模式 ==========
 async function connectWallet() {
   if (!window.ethereum) {
     alert("请在 ImToken 内置浏览器打开页面！");
@@ -339,7 +325,6 @@ async function connectWallet() {
   }
 }
 
-// ========== 转账：Token Core 底层签名 ==========
 async function sendTx() {
   if (!web3 && !isLocalWallet) return alert("请先连接钱包");
   if (isLocalWallet && !coreReady) return alert("Token Core 内核未就绪");
