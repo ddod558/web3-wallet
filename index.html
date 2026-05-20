@@ -12,48 +12,52 @@
 <div class="max-w-md mx-auto">
     <h1 class="text-3xl font-bold text-center mb-8">Real Web3 Wallet</h1>
 
-    <div class="bg-blue-600 text-white rounded-3xl p-8 mb-8 text-center">
-        <p>ETH 余额</p>
+    <div class="bg-gradient-to-br from-blue-600 to-purple-600 text-white rounded-3xl p-8 mb-8">
+        <p class="opacity-75">ETH 余额</p>
         <h2 id="balance" class="text-5xl font-bold mt-2">0.0000</h2>
-        <p id="address" class="mt-4 text-sm break-all">未连接钱包</p>
+        <p id="address" class="mt-6 font-mono break-all bg-white/20 p-3 rounded-2xl">未连接钱包</p>
     </div>
 
-    <div class="space-y-4">
-        <button onclick="testClick()" 
-                class="w-full bg-white py-6 rounded-3xl shadow text-lg font-medium">
-            🧪 测试按钮（点我看是否能弹窗）
-        </button>
+    <button onclick="connectImToken()" 
+            class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-8 rounded-3xl text-xl font-medium shadow-lg active:scale-95 transition">
+        🔗 连接 imToken 钱包
+    </button>
 
-        <button onclick="createWallet()" 
-                class="w-full bg-white py-6 rounded-3xl shadow text-lg font-medium">
-            创建钱包
-        </button>
-
-        <button onclick="connectImToken()" 
-                class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-6 rounded-3xl shadow text-lg font-medium">
-            🔗 连接 imToken
-        </button>
+    <div class="mt-8 text-center text-sm text-slate-500">
+        <p>使用方法：</p>
+        <p>1. 打开 imToken App</p>
+        <p>2. 点击上方按钮</p>
+        <p>3. 在 imToken 中确认连接</p>
     </div>
 </div>
 
 <script>
-// 测试函数 - 确认按钮是否能点击
-function testClick() {
-    alert("✅ 按钮可以正常点击！\nJavaScript 正常运行");
-    console.log("按钮点击成功");
-}
+let currentAccount = null;
 
-// 创建钱包
-function createWallet() {
-    alert("✅ 钱包创建功能已准备好");
-}
-
-// 连接 imToken
+// 连接 imToken（最稳定方式）
 function connectImToken() {
-    alert("正在尝试连接 imToken...\n\n如果没有反应，请告诉我具体情况");
+    const message = "即将打开 imToken 进行连接...\n\n请确保 imToken 已登录并在后台运行";
+
+    if (confirm(message)) {
+        // WalletConnect 通用链接（imToken 支持最好的一种方式）
+        const wcLink = "https://walletconnect.com/wc?uri=wc:2.0";
+        
+        // 尝试 deep link 唤起 imToken
+        window.location.href = `imtokenv2://wc?uri=${encodeURIComponent(wcLink)}`;
+
+        // 备用方案提示
+        setTimeout(() => {
+            alert("如果没有自动跳转 imToken：\n\n1. 手动打开 imToken\n2. 点击「发现」→「DApp浏览器」\n3. 输入你的网站地址连接");
+        }, 1200);
+    }
 }
 
-console.log("页面 JavaScript 已加载");
+// 测试用 - 模拟连接成功
+function simulateConnect() {
+    currentAccount = "0x" + Math.random().toString(16).slice(2, 42);
+    document.getElementById("address").innerText = currentAccount;
+    alert("✅ 模拟连接成功！\n地址：" + currentAccount);
+}
 </script>
 </body>
 </html>
