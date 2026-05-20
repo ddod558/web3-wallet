@@ -136,7 +136,7 @@
       </select>
     </div>
 
-    <!-- ImToken连接（强制签名版） -->
+    <!-- ImToken连接（修复兼容签名版） -->
     <div class="card">
       <h3 class="card-title">ImToken 钱包连接</h3>
       <button class="btn" onclick="connectWallet()">连接 ImToken 钱包</button>
@@ -189,7 +189,7 @@ const USDT = {
 let web3;
 let userAddress;
 
-// 【强制签名连接逻辑】必须手动点击，ImToken弹窗签名授权
+// 【修复兼容ImToken签名逻辑】
 async function connectWallet() {
   if (!window.ethereum) {
     alert("请在 ImToken 内置浏览器打开页面！");
@@ -198,20 +198,23 @@ async function connectWallet() {
 
   const chainId = document.getElementById("network").value;
   try {
-    // 先切换网络
+    // 切换网络
     await window.ethereum.request({
       method: 'wallet_switchEthereumChain',
       params: [{ chainId: '0x' + parseInt(chainId).toString(16) }]
     });
 
-    // 强制 ImToken 弹窗签名授权，获取地址
+    // 获取钱包地址
     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
     userAddress = accounts[0];
     web3 = new Web3(window.ethereum);
 
-    // 【新增】强制签名消息，确保必须签名才算连接成功
-    const signMsg = "欢迎使用多链钱包，请签名授权登录";
-    const signature = await web3.eth.personal.sign(signMsg, userAddress);
+    // 改用 ImToken 兼容的标准签名方法
+    const signMessage = "欢迎使用多链钱包，请签名完成登录授权";
+    await window.ethereum.request({
+      method: "personal_sign",
+      params: [web3.utils.utf8ToHex(signMessage), userAddress]
+    });
 
     const dom = document.getElementById("walletAddr");
     dom.style.display = "block";
