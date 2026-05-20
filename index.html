@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>真实区块链钱包</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web3@4.4.0/dist/web3.min.js"></script>
+    <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+</head>
+<body class="bg-slate-100 min-h-screen p-4">
+
+<div class="max-w-md mx-auto">
+    <h1 class="text-3xl font-bold text-center mt-4">Real Web3 Wallet</h1>
+    <p class="text-center text-slate-500">Sepolia 测试网</p>
+
+    <div class="mt-8 bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-3xl p-6 shadow-xl">
+        <p class="opacity-75">ETH 余额</p>
+        <h2 id="balance" class="text-5xl font-bold mt-2">0.0000</h2>
+        <p id="address" class="mt-6 font-mono text-sm break-all bg-white/20 p-3 rounded-2xl">未连接钱包</p>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4 mt-8">
+        <button onclick="createWallet()" class="bg-white py-6 rounded-3xl shadow active:scale-95">创建钱包</button>
+        <button onclick="importWallet()" class="bg-white py-6 rounded-3xl shadow active:scale-95">导入私钥</button>
+        
+        <button onclick="connectImToken()" class="bg-white py-6 rounded-3xl shadow active:scale-95 col-span-2 border-2 border-blue-500 font-medium">
+            🔗 连接 imToken
+        </button>
+
+        <button onclick="signMessage()" class="bg-white py-6 rounded-3xl shadow active:scale-95 col-span-2 border-2 border-purple-500 font-medium">
+            ✍️ 签名消息
+        </button>
+
+        <button onclick="openTransfer()" class="bg-white py-6 rounded-3xl shadow active:scale-95">转账 ETH</button>
+        <button onclick="refreshBalance()" class="bg-white py-6 rounded-3xl shadow active:scale-95">刷新余额</button>
+    </div>
+</div>
+
+<script>
+const web3 = new Web3("https://rpc.sepolia.org");
+let myWallet = null;
+let provider = null;   // 用于 WalletConnect
+
+// 创建本地钱包
+function createWallet() {
+    myWallet = web3.eth.accounts.create();
+    updateUI();
+    alert("✅ 本地钱包创建成功！\n地址:\n" + myWallet.address);
+}
+
+// 导入私钥
+function importWallet() {
+    const pk = prompt("请输入私钥 (可带0x)");
+    if (!pk) return;
+    try {
+        myWallet = web3.eth.accounts.privateKeyToAccount(pk);
+        updateUI();
+        alert("✅ 导入成功！");
+    } catch(e) {
