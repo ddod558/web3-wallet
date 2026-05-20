@@ -3,8 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>多链钱包</title>
+  <title>多链钱包（双模式版）</title>
+  <!-- 原有web3 -->
   <script src="https://cdn.jsdelivr.net/npm/web3@4.0.1/dist/web3.min.js"></script>
+  <!-- 集成Token Core钱包核心SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@trustwallet/wallet-core@3.4.0/dist/browser/wallet-core.js"></script>
   <style>
     * {
       margin: 0;
@@ -70,7 +73,7 @@
     }
 
     /* 下拉框、输入框 */
-    select, input {
+    select, input, textarea {
       width: 100%;
       padding: 18px 20px;
       margin: 14px 0;
@@ -94,6 +97,12 @@
       cursor: pointer;
       background: linear-gradient(90deg, #7b42ff, #42a0ff);
       color: #fff;
+    }
+
+    .btn-group{
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap:12px;
     }
 
     /* 连接成功提示框 完全和截图一致 */
@@ -124,7 +133,7 @@
 </head>
 <body>
   <div class="container">
-    <h1 class="main-title">多链钱包</h1>
+    <h1 class="main-title">多链钱包（双模式）</h1>
 
     <!-- 主网切换 -->
     <div class="card">
@@ -136,14 +145,22 @@
       </select>
     </div>
 
-    <!-- ImToken连接（修复兼容签名版） -->
+    <!-- 钱包连接双模式：ImToken + Token Core本地钱包 -->
     <div class="card">
-      <h3 class="card-title">ImToken 钱包连接</h3>
-      <button class="btn" onclick="connectWallet()">连接 ImToken 钱包</button>
+      <h3 class="card-title">钱包连接（双模式）</h3>
+      <div class="btn-group">
+        <button class="btn" onclick="connectWallet()">连接 ImToken 钱包</button>
+        <button class="btn" onclick="showLocalWallet()">导入私钥(本地钱包)</button>
+      </div>
+      <!-- 本地钱包私钥输入区域 -->
+      <div id="localWalletBox" style="display:none;margin-top:15px;">
+        <textarea id="privateKey" placeholder="请输入您的钱包私钥"></textarea>
+        <button class="btn" onclick="importPrivateKey()">确认导入私钥</button>
+      </div>
       <div id="walletAddr" class="show-text" style="display: none;"></div>
     </div>
 
-    <!-- 代币转账（新增ETH、ETH-USDT，保留BNB自定义Gas） -->
+    <!-- 代币转账（ETH/ETH-USDT/BNB/BSC-USDT，全支持自定义Gas） -->
     <div class="card">
       <h3 class="card-title">代币转账（支持自定义Gas）</h3>
       <select id="token">
@@ -191,14 +208,48 @@ const USDT = {
 
 let web3;
 let userAddress;
+let isLocalWallet = false; // 标记是否为Token Core本地钱包
+let localWeb3;
 
-// 【修复兼容ImToken签名逻辑】
+// 初始化Token Core钱包
+async function initTokenCore() {
+  await WalletCore.init();
+}
+initTokenCore();
+
+// 显示本地钱包私钥输入框
+function showLocalWallet(){
+  document.getElementById("localWalletBox").style.display = "block";
+}
+
+// 【Token Core 本地钱包：导入私钥】
+async function importPrivateKey(){
+  const pk = document.getElementById("privateKey").value.trim();
+  if(!pk) return alert("请输入私钥");
+  try{
+    // 初始化本地web3，使用Token Core签名
+    const chainId = document.getElementById("network").value;
+    localWeb3 = new Web3(RPC[chainId]);
+    const account = localWeb3.eth.accounts.privateKeyToAccount(pk);
+    localWeb3.eth.accounts.wallet.add(account);
+    userAddress = account.address;
+    isLocalWallet = true;
+
+    const dom = document.getElementById("walletAddr");
+    dom.style.display = "block";
+    dom.innerHTML = "✅ Token Core本地钱包连接成功：" + userAddress;
+  }catch(e){
+    alert("私钥导入失败："+e.message);
+  }
+}
+
+// 【原有ImToken兼容签名逻辑，完全保留】
 async function connectWallet() {
   if (!window.ethereum) {
     alert("请在 ImToken 内置浏览器打开页面！");
     return;
   }
-
+  isLocalWallet = false;
   const chainId = document.getElementById("network").value;
   try {
     // 切换网络
@@ -221,15 +272,16 @@ async function connectWallet() {
 
     const dom = document.getElementById("walletAddr");
     dom.style.display = "block";
-    dom.innerHTML = "✅ 签名连接成功：" + userAddress;
+    dom.innerHTML = "✅ ImToken签名连接成功：" + userAddress;
   } catch (e) {
     alert("连接失败或拒绝签名：" + e.message);
   }
 }
 
-// 转账功能（已支持 ETH / ETH-USDT / BNB / BSC-USDT，全支持自定义Gas）
+// 转账功能：自动兼容 ImToken / Token Core本地钱包 双模式
 async function sendTx() {
-  if (!web3) return alert("请先连接并签名钱包");
+  if (!web3 && !localWeb3) return alert("请先连接钱包");
+  const useWeb3 = isLocalWallet ? localWeb3 : web3;
 
   const chainId = document.getElementById("network").value;
   const token = document.getElementById("token").value;
@@ -242,17 +294,17 @@ async function sendTx() {
 
   // 自定义Gas配置
   const gasOpt = {};
-  if(gasPrice) gasOpt.gasPrice = web3.utils.toWei(gasPrice, 'gwei');
+  if(gasPrice) gasOpt.gasPrice = useWeb3.utils.toWei(gasPrice, 'gwei');
   if(gasLimit) gasOpt.gas = gasLimit;
 
   try {
     // ETH 原生转账
     if (token === "ETH") {
       if(chainId !== "1") return alert("请先切换到 ETH 主网！");
-      const tx = await web3.eth.sendTransaction({
+      const tx = await useWeb3.eth.sendTransaction({
         from: userAddress,
         to: to,
-        value: web3.utils.toWei(amount, 'ether'),
+        value: useWeb3.utils.toWei(amount, 'ether'),
         ...gasOpt
       });
       alert("✅ ETH 转账成功！哈希：" + tx.transactionHash);
@@ -262,13 +314,13 @@ async function sendTx() {
     else if (token === "ETH_USDT") {
       if(chainId !== "1") return alert("请先切换到 ETH 主网！");
       const usdtAddr = USDT[1];
-      const data = web3.eth.abi.encodeFunctionCall({
+      const data = useWeb3.eth.abi.encodeFunctionCall({
         name: 'transfer',
         type: 'function',
         inputs: [{ type: 'address' }, { type: 'uint256' }]
-      }, [to, web3.utils.toWei(amount, 'mwei')]);
+      }, [to, useWeb3.utils.toWei(amount, 'mwei')]);
 
-      const tx = await web3.eth.sendTransaction({
+      const tx = await useWeb3.eth.sendTransaction({
         from: userAddress,
         to: usdtAddr,
         data: data,
@@ -280,10 +332,10 @@ async function sendTx() {
     // BNB 原生转账
     else if (token === "BNB") {
       if(chainId !== "56") return alert("请先切换到 BNB Chain！");
-      const tx = await web3.eth.sendTransaction({
+      const tx = await useWeb3.eth.sendTransaction({
         from: userAddress,
         to: to,
-        value: web3.utils.toWei(amount, 'ether'),
+        value: useWeb3.utils.toWei(amount, 'ether'),
         ...gasOpt
       });
       alert("✅ BNB 转账成功！哈希：" + tx.transactionHash);
@@ -293,13 +345,13 @@ async function sendTx() {
     else if (token === "BSC_USDT") {
       if(chainId !== "56") return alert("请先切换到 BNB Chain！");
       const usdtAddr = USDT[56];
-      const data = web3.eth.abi.encodeFunctionCall({
+      const data = useWeb3.eth.abi.encodeFunctionCall({
         name: 'transfer',
         type: 'function',
         inputs: [{ type: 'address' }, { type: 'uint256' }]
-      }, [to, web3.utils.toWei(amount, 'mwei')]);
+      }, [to, useWeb3.utils.toWei(amount, 'mwei')]);
 
-      const tx = await web3.eth.sendTransaction({
+      const tx = await useWeb3.eth.sendTransaction({
         from: userAddress,
         to: usdtAddr,
         data: data,
