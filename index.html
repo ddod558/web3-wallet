@@ -1,3 +1,152 @@
-git init
-git add .
-git commit -m "first commit"
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>多链钱包原型</title>
+  <script src="https://cdn.jsdelivr.net/npm/web3@4.0.1/dist/web3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bip39@3.1.0/dist/bip39.min.js"></script>
+</head>
+<body>
+  <h2>多链钱包 - ETH / BSC / Polygon</h2>
+
+  <!-- 网络切换 -->
+  <div>
+    <h4>选择主网</h4>
+    <select id="network">
+      <option value="1">ETH 主网</option>
+      <option value="56">BNB Chain(BSC)</option>
+      <option value="137">Polygon</option>
+    </select>
+  </div>
+
+  <!-- 助记词创建 -->
+  <div>
+    <h4>创建钱包（12/24词）</h4>
+    <select id="wordCount">
+      <option value="12">12 词助记词</option>
+      <option value="24">24 词助记词</option>
+    </select>
+    <button onclick="createWallet()">生成助记词</button>
+    <div id="mnemonic" style="margin:10px 0;"></div>
+  </div>
+
+  <!-- 转账 -->
+  <div>
+    <h4>代币转账</h4>
+    <select id="token">
+      <option value="BNB">BNB</option>
+      <option value="USDT">USDT</option>
+    </select>
+    <br>
+    接收地址：<input type="text" id="to" placeholder="0x..."><br>
+    转账数量：<input type="number" id="amount"><br>
+    Gas Price(Gwei)：<input type="number" id="gasPrice" placeholder="自动留空"><br>
+    <button onclick="sendTx()">发起转账</button>
+  </div>
+
+  <!-- 交易记录 -->
+  <div>
+    <h4>交易哈希查询</h4>
+    <input type="text" id="txHash" placeholder="输入TxHash">
+    <button onclick="queryTx()">链上查询</button>
+    <div id="txResult"></div>
+  </div>
+
+<script>
+// 链配置
+const RPC = {
+  1: "https://mainnet.infura.io/v3/YOUR_KEY",
+  56: "https://bsc-dataseed.binance.org",
+  137: "https://polygon-rpc.com"
+};
+
+const EXPLORER = {
+  1: "https://etherscan.io/tx/",
+  56: "https://bscscan.com/tx/",
+  137: "https://polygonscan.com/tx/"
+};
+
+// USDT 合约地址（主网）
+const USDT = {
+  1: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+  56: "0x55d398326f99059fF775485246999027B3197955",
+  137: "0xc2132D05D31c914a87C6611C10748Acd29181247"
+};
+
+let web3;
+let wallet;
+
+// 初始化 web3
+function initWeb3() {
+  const chainId = document.getElementById("network").value;
+  web3 = new Web3(RPC[chainId]);
+}
+
+// 创建钱包 12/24 助记词
+async function createWallet() {
+  initWeb3();
+  const wordCnt = parseInt(document.getElementById("wordCount").value);
+  const strength = wordCnt === 12 ? 128 : 256;
+  const mnemonic = bip39.generateMnemonic(strength);
+  document.getElementById("mnemonic").innerText = mnemonic;
+
+  const seed = await bip39.mnemonicToSeed(mnemonic);
+  wallet = web3.eth.accounts.privateKeyToAccount(web3.utils.bytesToHex(seed.slice(0,32)));
+  alert("钱包地址：" + wallet.address);
+}
+
+// 转账
+async function sendTx() {
+  initWeb3();
+  const chainId = document.getElementById("network").value;
+  const token = document.getElementById("token").value;
+  const to = document.getElementById("to").value;
+  const amount = document.getElementById("amount").value;
+  const gasPrice = document.getElementById("gasPrice").value;
+
+  let tx;
+  const gasOpt = gasPrice ? {gasPrice: web3.utils.toWei(gasPrice, 'gwei')} : {};
+
+  if(token === "BNB"){
+    tx = {
+      from: wallet.address,
+      to: to,
+      value: web3.utils.toWei(amount, 'ether'),
+      ...gasOpt
+    }
+  }else{
+    const usdtAddr = USDT[chainId];
+    const data = web3.eth.abi.encodeFunctionCall({
+      name: 'transfer',
+      type: 'function',
+      inputs: [
+        {type:'address',name:'to'},
+        {type:'uint256',name:'value'}
+      ]
+    }, [to, web3.utils.toWei(amount, 'mwei')]);
+
+    tx = {
+      from: wallet.address,
+      to: usdtAddr,
+      data: data,
+      ...gasOpt
+    }
+  }
+
+  const signed = await web3.eth.accounts.signTransaction(tx, wallet.privateKey);
+  const receipt = await web3.eth.sendSignedTransaction(signed.rawTransaction);
+  alert("交易成功！哈希：" + receipt.transactionHash);
+}
+
+// 链上查询交易
+async function queryTx() {
+  initWeb3();
+  const hash = document.getElementById("txHash").value;
+  const chainId = document.getElementById("network").value;
+  const res = await web3.eth.getTransactionReceipt(hash);
+  document.getElementById("txResult").innerHTML = 
+    JSON.stringify(res,null,2) + "<br>浏览器："+EXPLORER[chainId]+hash;
+}
+</script>
+</body>
+</html>
