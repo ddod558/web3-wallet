@@ -6,7 +6,6 @@
     <title>真实区块链钱包</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/web3@4.4.0/dist/web3.min.js"></script>
-    <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
 </head>
 <body class="bg-slate-100 min-h-screen p-4">
 
@@ -24,11 +23,11 @@
         <button onclick="createWallet()" class="bg-white py-6 rounded-3xl shadow active:scale-95">创建钱包</button>
         <button onclick="importWallet()" class="bg-white py-6 rounded-3xl shadow active:scale-95">导入私钥</button>
         
-        <button onclick="connectImToken()" class="bg-white py-6 rounded-3xl shadow active:scale-95 col-span-2 border-2 border-blue-500 font-medium">
-            🔗 连接 imToken
+        <button onclick="connectLocalWallet()" class="bg-emerald-500 text-white py-6 rounded-3xl shadow active:scale-95 col-span-2 font-medium">
+            🔗 使用本地钱包
         </button>
 
-        <button onclick="signMessage()" class="bg-white py-6 rounded-3xl shadow active:scale-95 col-span-2 border-2 border-purple-500 font-medium">
+        <button onclick="signMessage()" class="bg-white py-6 rounded-3xl shadow active:scale-95 col-span-2 border-2 border-purple-500">
             ✍️ 签名消息
         </button>
 
@@ -40,21 +39,72 @@
 <script>
 const web3 = new Web3("https://rpc.sepolia.org");
 let myWallet = null;
-let provider = null;   // 用于 WalletConnect
 
-// 创建本地钱包
-function createWallet() {
+// 创建新钱包
+async function createWallet() {
     myWallet = web3.eth.accounts.create();
-    updateUI();
-    alert("✅ 本地钱包创建成功！\n地址:\n" + myWallet.address);
+    await connectLocalWallet();
+    alert("✅ 钱包创建成功！\n\n地址：\n" + myWallet.address + "\n\n已自动连接");
 }
 
 // 导入私钥
-function importWallet() {
-    const pk = prompt("请输入私钥 (可带0x)");
+async function importWallet() {
+    const pk = prompt("请输入私钥 (可带 0x)：");
     if (!pk) return;
     try {
         myWallet = web3.eth.accounts.privateKeyToAccount(pk);
-        updateUI();
-        alert("✅ 导入成功！");
+        await connectLocalWallet();
+        alert("✅ 导入成功并已连接！");
     } catch(e) {
+        alert("❌ 私钥格式错误");
+    }
+}
+
+// 本地钱包“连接”功能（核心）
+async function connectLocalWallet() {
+    if (!myWallet) {
+        return alert("请先创建或导入钱包");
+    }
+    
+    document.getElementById("address").innerText = myWallet.address;
+    alert("✅ 本地钱包已连接！\n你可以进行签名等操作");
+    refreshBalance();
+}
+
+// 刷新余额
+async function refreshBalance() {
+    if (!myWallet) return alert("请先连接钱包");
+    try {
+        const bal = await web3.eth.getBalance(myWallet.address);
+        document.getElementById("balance").innerText = parseFloat(web3.utils.fromWei(bal, 'ether')).toFixed(4);
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+// 签名消息（支持本地钱包）
+async function signMessage() {
+    if (!myWallet) return alert("请先创建/导入并连接钱包");
+
+    const message = prompt("请输入要签名的消息：", "欢迎使用我的 Web3 钱包！");
+    if (!message) return;
+
+    try {
+        const signature = await web3.eth.accounts.sign(message, myWallet.privateKey).signature;
+        
+        alert(`✅ 签名成功！\n\n消息：${message}\n\n签名结果：\n${signature}`);
+        
+        // 复制到剪贴板
+        await navigator.clipboard.writeText(signature);
+        alert("签名已复制到剪贴板 ✓");
+    } catch (err) {
+        alert("签名失败：" + err.message);
+    }
+}
+
+function openTransfer() {
+    alert("转账功能开发中...\n\n当前支持：创建钱包 + 签名");
+}
+</script>
+</body>
+</html>
