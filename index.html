@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>真实区块链钱包</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web3@4.4.0/dist/web3.min.js"></script>
+</head>
+<body class="bg-slate-100 min-h-screen p-4">
+
+    <div class="max-w-md mx-auto">
+        <h1 class="text-3xl font-bold text-center mt-4">Real Web3 Wallet</h1>
+        <p class="text-center text-slate-500">Sepolia 测试网</p>
+
+        <div class="mt-8 bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-3xl p-6">
+            <p>ETH 余额</p>
+            <h2 id="balance" class="text-5xl font-bold mt-2">0.0000</h2>
+            <p id="address" class="mt-6 font-mono text-sm break-all bg-white/20 p-3 rounded-2xl">未创建钱包</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4 mt-8">
+            <button onclick="createWallet()" class="bg-white py-6 rounded-3xl shadow">创建钱包</button>
+            <button onclick="importWallet()" class="bg-white py-6 rounded-3xl shadow">导入钱包</button>
+            <button onclick="openTransfer()" class="bg-white py-6 rounded-3xl shadow">转账 ETH</button>
+            <button onclick="refreshBalance()" class="bg-white py-6 rounded-3xl shadow">刷新余额</button>
+        </div>
+    </div>
+
+<script>
+const web3 = new Web3("https://rpc.sepolia.org");
+let myWallet = null;
+
+function createWallet() {
+    myWallet = web3.eth.accounts.create();
+    alert("钱包创建成功！\n地址：" + myWallet.address + "\n私钥：" + myWallet.privateKey);
+    document.getElementById("address").innerText = myWallet.address;
+}
+
+function importWallet() {
+    const pk = prompt("请输入私钥：");
+    if (pk) {
+        myWallet = web3.eth.accounts.privateKeyToAccount(pk);
+        document.getElementById("address").innerText = myWallet.address;
+        alert("导入成功！");
+    }
+}
+
+async function refreshBalance() {
+    if (!myWallet) return alert("请先创建或导入钱包");
+    const bal = await web3.eth.getBalance(myWallet.address);
+    document.getElementById("balance").innerText = parseFloat(web3.utils.fromWei(bal, 'ether')).toFixed(4);
+}
+
+function openTransfer() {
+    if (!myWallet) return alert("请先创建或导入钱包");
+    const to = prompt("接收地址：");
+    const amount = prompt("转账数量 (ETH)：");
+    if (to && amount) {
+        alert("转账功能已简化，实际发送请使用完整版");
+    }
+}
+</script>
+</body>
+</html>
