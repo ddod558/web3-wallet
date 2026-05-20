@@ -6,33 +6,54 @@
     <title>真实区块链钱包</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/web3@4.4.0/dist/web3.min.js"></script>
-    <!-- WalletConnect v2 -->
-    <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.11.0/dist/index.umd.js"></script>
 </head>
-<body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen pb-12">
+<body class="bg-slate-100 min-h-screen p-6">
 
-<div class="max-w-md mx-auto px-4 pt-6">
+<div class="max-w-md mx-auto">
+    <h1 class="text-3xl font-bold text-center mb-8">Real Web3 Wallet</h1>
 
-    <!-- 顶部 -->
-    <div class="flex justify-between items-center mb-8">
-        <div class="flex items-center gap-3">
-            <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center text-white text-2xl">₿</div>
-            <h1 class="text-2xl font-bold">Real Wallet</h1>
-        </div>
-        <button onclick="connectWallet()" class="px-5 py-2.5 bg-white rounded-3xl shadow flex items-center gap-2 text-sm font-medium">
-            <span>🔗</span>
-            <span id="connectBtnText">连接 imToken</span>
+    <div class="bg-blue-600 text-white rounded-3xl p-8 mb-8 text-center">
+        <p>ETH 余额</p>
+        <h2 id="balance" class="text-5xl font-bold mt-2">0.0000</h2>
+        <p id="address" class="mt-4 text-sm break-all">未连接钱包</p>
+    </div>
+
+    <div class="space-y-4">
+        <button onclick="testClick()" 
+                class="w-full bg-white py-6 rounded-3xl shadow text-lg font-medium">
+            🧪 测试按钮（点我看是否能弹窗）
+        </button>
+
+        <button onclick="createWallet()" 
+                class="w-full bg-white py-6 rounded-3xl shadow text-lg font-medium">
+            创建钱包
+        </button>
+
+        <button onclick="connectImToken()" 
+                class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-6 rounded-3xl shadow text-lg font-medium">
+            🔗 连接 imToken
         </button>
     </div>
+</div>
 
-    <!-- 余额卡片 -->
-    <div class="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-8 text-white shadow-2xl mb-10">
-        <p class="text-white/70">ETH 余额</p>
-        <h2 id="balance" class="text-6xl font-bold mt-2">0.0000</h2>
-        <p id="address" class="mt-8 font-mono text-sm break-all bg-white/10 p-3 rounded-2xl">未连接钱包</p>
-    </div>
+<script>
+// 测试函数 - 确认按钮是否能点击
+function testClick() {
+    alert("✅ 按钮可以正常点击！\nJavaScript 正常运行");
+    console.log("按钮点击成功");
+}
 
-    <div class="grid grid-cols-2 gap-4">
-        <button onclick="createWallet()" class="bg-white p-6 rounded-3xl shadow active:scale-95">创建本地钱包</button>
-        <button onclick="importWallet()" class="bg-white p-6 rounded-3xl shadow active:scale-95">导入私钥</button>
-        <button onclick="sign
+// 创建钱包
+function createWallet() {
+    alert("✅ 钱包创建功能已准备好");
+}
+
+// 连接 imToken
+function connectImToken() {
+    alert("正在尝试连接 imToken...\n\n如果没有反应，请告诉我具体情况");
+}
+
+console.log("页面 JavaScript 已加载");
+</script>
+</body>
+</html>
