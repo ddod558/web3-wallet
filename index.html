@@ -15,7 +15,9 @@
 
     body {
       min-height: 100vh;
-      background-color: #121218;
+      /* 紫色哈基米+Pepe卡通全屏背景 */
+      background: url('https://i.imgur.com/NlF8VQd.png') no-repeat center center fixed;
+      background-size: cover;
       color: #fff;
       padding: 30px 15px;
       position: relative;
@@ -40,9 +42,10 @@
       z-index: 2;
     }
 
-    /* 卡片样式 严格复刻截图 */
+    /* 卡片样式 严格复刻截图深色紫调 */
     .card {
-      background: #271c4e;
+      background: rgba(39, 28, 78, 0.85);
+      backdrop-filter: blur(6px);
       border: 1px solid #413280;
       border-radius: 28px;
       padding: 26px;
@@ -73,7 +76,7 @@
       margin: 14px 0;
       border-radius: 18px;
       border: 1px solid #4168c9;
-      background: #1e1447;
+      background: rgba(30, 20, 71, 0.85);
       color: #fff;
       font-size: 18px;
       outline: none;
@@ -97,7 +100,7 @@
     .show-text {
       margin-top: 18px;
       padding: 18px;
-      background: #1e1447;
+      background: rgba(30, 20, 71, 0.85);
       border-radius: 18px;
       border-left: 5px solid #ff7cb9;
       word-break: break-all;
@@ -133,7 +136,7 @@
       </select>
     </div>
 
-    <!-- ImToken连接 -->
+    <!-- ImToken连接（强制签名版） -->
     <div class="card">
       <h3 class="card-title">ImToken 钱包连接</h3>
       <button class="btn" onclick="connectWallet()">连接 ImToken 钱包</button>
@@ -186,7 +189,7 @@ const USDT = {
 let web3;
 let userAddress;
 
-// 【关键修改】删除自动连接代码，只保留手动连接
+// 【强制签名连接逻辑】必须手动点击，ImToken弹窗签名授权
 async function connectWallet() {
   if (!window.ethereum) {
     alert("请在 ImToken 内置浏览器打开页面！");
@@ -195,26 +198,32 @@ async function connectWallet() {
 
   const chainId = document.getElementById("network").value;
   try {
+    // 先切换网络
     await window.ethereum.request({
       method: 'wallet_switchEthereumChain',
       params: [{ chainId: '0x' + parseInt(chainId).toString(16) }]
     });
 
+    // 强制 ImToken 弹窗签名授权，获取地址
     const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
     userAddress = accounts[0];
     web3 = new Web3(window.ethereum);
 
+    // 【新增】强制签名消息，确保必须签名才算连接成功
+    const signMsg = "欢迎使用多链钱包，请签名授权登录";
+    const signature = await web3.eth.personal.sign(signMsg, userAddress);
+
     const dom = document.getElementById("walletAddr");
     dom.style.display = "block";
-    dom.innerHTML = "✅ 连接成功：" + userAddress;
+    dom.innerHTML = "✅ 签名连接成功：" + userAddress;
   } catch (e) {
-    alert("连接失败：" + e.message);
+    alert("连接失败或拒绝签名：" + e.message);
   }
 }
 
 // 转账功能
 async function sendTx() {
-  if (!web3) return alert("请先连接钱包");
+  if (!web3) return alert("请先连接并签名钱包");
 
   const chainId = document.getElementById("network").value;
   const token = document.getElementById("token").value;
