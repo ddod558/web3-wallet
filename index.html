@@ -3,11 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>多链钱包（三模式·稳定版）</title>
-  <!-- 优先加载依赖库 -->
-  <script src="https://cdn.jsdelivr.net/npm/@trustwallet/wallet-core@3.4.0/dist/browser/wallet-core.js"></script>
+  <title>多链钱包</title>
+  <!-- 优先加载库，使用高速CDN -->
   <script src="https://cdn.jsdelivr.net/npm/web3@4.0.1/dist/web3.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
+  <!-- Token Core 单独预加载，超时自动禁用 -->
+  <script>
+    let coreReady = false;
+    let coreLoadTimeout = false;
+    const coreScript = document.createElement('script');
+    coreScript.src = "https://cdn.jsdelivr.net/npm/@trustwallet/wallet-core@3.4.0/dist/browser/wallet-core.js";
+    coreScript.onload = async () => {
+      await WalletCore.init();
+      coreReady = true;
+      console.log("✅ Token Core 加载完成");
+    };
+    coreScript.onerror = () => {
+      coreLoadTimeout = true;
+      document.getElementById("coreBtnGroup").style.display = "none";
+      alert("⚠️ Token Core 加载失败，仅可使用 ImToken 模式");
+    };
+    // 10秒超时自动禁用
+    setTimeout(()=>{
+      if(!coreReady){
+        coreLoadTimeout = true;
+        document.getElementById("coreBtnGroup").style.display = "none";
+      }
+    },10000);
+    document.head.appendChild(coreScript);
+  </script>
   <style>
     * {
       margin: 0;
@@ -18,10 +42,10 @@
 
     body {
       min-height: 100vh;
-      /* 修复：高清稳定的紫色哈基米+Pepe全屏背景 */
+      /* 修复背景，兜底深色 */
       background: url('https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/03130390083e4038900f3f00d3400311~tplv-a9rns2rl98-image.image') no-repeat center center fixed;
       background-size: cover;
-      background-color: #1a1238; /* 兜底深色，防止图片加载失败全黑 */
+      background-color: #1a1238;
       color: #fff;
       padding: 30px 15px;
       position: relative;
@@ -132,7 +156,7 @@
 </head>
 <body>
   <div class="container">
-    <h1 class="main-title">多链钱包（三模式）</h1>
+    <h1 class="main-title">多链钱包（稳定版）</h1>
 
     <div class="card">
       <h3 class="card-title">主网切换中心</h3>
@@ -144,11 +168,13 @@
     </div>
 
     <div class="card">
-      <h3 class="card-title">钱包连接（三模式）</h3>
+      <h3 class="card-title">钱包连接</h3>
       <div class="btn-group">
         <button class="btn" onclick="connectWallet()">连接 ImToken</button>
-        <button class="btn" onclick="showImport()">导入私钥</button>
-        <button class="btn" onclick="showCreate()">创建钱包</button>
+        <div id="coreBtnGroup" style="display:contents;">
+          <button class="btn" onclick="showImport()">导入私钥</button>
+          <button class="btn" onclick="showCreate()">创建钱包</button>
+        </div>
       </div>
 
       <div id="importBox" style="display:none;margin-top:15px;">
@@ -190,15 +216,6 @@
   </div>
 
 <script>
-let coreReady = false;
-
-// 页面加载完成后初始化Token Core
-window.addEventListener('load', async () => {
-  await WalletCore.init();
-  coreReady = true;
-  console.log("✅ Token Core 内核加载完成");
-});
-
 const RPC = {
   1: "https://mainnet.infura.io/v3/YOUR_KEY",
   56: "https://bsc-dataseed.binance.org",
@@ -226,17 +243,18 @@ let sessionPwd = null;
 let tempMnemonic = null;
 
 function showImport(){
+  if(!coreReady) return alert("Token Core 加载中，请稍后或使用 ImToken 模式");
   document.getElementById("importBox").style.display="block";
   document.getElementById("createBox").style.display="none";
 }
 function showCreate(){
+  if(!coreReady) return alert("Token Core 加载中，请稍后或使用 ImToken 模式");
   document.getElementById("importBox").style.display="none";
   document.getElementById("createBox").style.display="block";
   document.getElementById("mnemonicView").style.display="none";
 }
 
 async function createWallet(){
-  if (!coreReady) return alert("Token Core 内核正在加载，请稍后再试！");
   const pwd = document.getElementById("pwdCreate").value.trim();
   if(!pwd) return alert("请设置加密密码");
 
@@ -266,7 +284,6 @@ async function createWallet(){
 }
 
 async function importByTokenCore(){
-  if (!coreReady) return alert("Token Core 内核正在加载，请稍后再试！");
   const pkHex = document.getElementById("privateKey").value.trim();
   const pwd = document.getElementById("pwdImport").value.trim();
   if(!pkHex || !pwd) return alert("请输入私钥和加密密码");
@@ -327,7 +344,6 @@ async function connectWallet() {
 
 async function sendTx() {
   if (!web3 && !isLocalWallet) return alert("请先连接钱包");
-  if (isLocalWallet && !coreReady) return alert("Token Core 内核未就绪");
 
   const chainId = document.getElementById("network").value;
   const token = document.getElementById("token").value;
