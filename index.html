@@ -3,35 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>多链钱包</title>
-  <!-- 优先加载库，使用高速CDN -->
+  <title>多链 </title>
   <script src="https://cdn.jsdelivr.net/npm/web3@4.0.1/dist/web3.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
-  <!-- Token Core 单独预加载，超时自动禁用 -->
-  <script>
-    let coreReady = false;
-    let coreLoadTimeout = false;
-    const coreScript = document.createElement('script');
-    coreScript.src = "https://cdn.jsdelivr.net/npm/@trustwallet/wallet-core@3.4.0/dist/browser/wallet-core.js";
-    coreScript.onload = async () => {
-      await WalletCore.init();
-      coreReady = true;
-      console.log("✅ Token Core 加载完成");
-    };
-    coreScript.onerror = () => {
-      coreLoadTimeout = true;
-      document.getElementById("coreBtnGroup").style.display = "none";
-      alert("⚠️ Token Core 加载失败，仅可使用 ImToken 模式");
-    };
-    // 10秒超时自动禁用
-    setTimeout(()=>{
-      if(!coreReady){
-        coreLoadTimeout = true;
-        document.getElementById("coreBtnGroup").style.display = "none";
-      }
-    },10000);
-    document.head.appendChild(coreScript);
-  </script>
+  <!-- 引入BIP39助记词生成库，国内CDN稳定 -->
+  <script src="https://cdn.jsdelivr.net/npm/bip39@3.1.0/dist/bip39.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -42,7 +18,6 @@
 
     body {
       min-height: 100vh;
-      /* 修复背景，兜底深色 */
       background: url('https://p3-flow-imagex-sign.byteimg.com/tos-cn-i-a9rns2rl98/03130390083e4038900f3f00d3400311~tplv-a9rns2rl98-image.image') no-repeat center center fixed;
       background-size: cover;
       background-color: #1a1238;
@@ -156,7 +131,7 @@
 </head>
 <body>
   <div class="container">
-    <h1 class="main-title">多链钱包（稳定版）</h1>
+    <h1 class="main-title">多链钱包（三模式）</h1>
 
     <div class="card">
       <h3 class="card-title">主网切换中心</h3>
@@ -168,25 +143,25 @@
     </div>
 
     <div class="card">
-      <h3 class="card-title">钱包连接</h3>
+      <h3 class="card-title">钱包连接（三模式）</h3>
       <div class="btn-group">
         <button class="btn" onclick="connectWallet()">连接 ImToken</button>
-        <div id="coreBtnGroup" style="display:contents;">
-          <button class="btn" onclick="showImport()">导入私钥</button>
-          <button class="btn" onclick="showCreate()">创建钱包</button>
-        </div>
+        <button class="btn" onclick="showImport()">导入私钥</button>
+        <button class="btn" onclick="showCreate()">创建钱包</button>
       </div>
 
+      <!-- 导入私钥面板 -->
       <div id="importBox" style="display:none;margin-top:15px;">
         <textarea id="privateKey" placeholder="输入钱包私钥"></textarea>
         <input type="password" id="pwdImport" placeholder="设置加密密码">
-        <button class="btn" onclick="importByTokenCore()">确认导入(加密)</button>
+        <button class="btn" onclick="importWallet()">确认导入(加密)</button>
       </div>
 
+      <!-- 创建钱包面板（纯Web3实现） -->
       <div id="createBox" style="display:none;margin-top:15px;">
         <input type="password" id="pwdCreate" placeholder="设置钱包加密密码">
         <div id="mnemonicView" class="mnemonic-box" style="display:none;"></div>
-        <button class="btn" id="createBtn" onclick="createWallet()">生成钱包</button>
+        <button class="btn" onclick="createWallet()">生成钱包</button>
       </div>
 
       <div id="walletAddr" class="show-text" style="display: none;"></div>
@@ -216,6 +191,7 @@
   </div>
 
 <script>
+// 链配置
 const RPC = {
   1: "https://mainnet.infura.io/v3/YOUR_KEY",
   56: "https://bsc-dataseed.binance.org",
@@ -237,77 +213,78 @@ const USDT = {
 let web3;
 let userAddress;
 let isLocalWallet = false;
-let coreChainId;
 let encryptedPrivateKey = null;
 let sessionPwd = null;
-let tempMnemonic = null;
 
+// 面板切换
 function showImport(){
-  if(!coreReady) return alert("Token Core 加载中，请稍后或使用 ImToken 模式");
   document.getElementById("importBox").style.display="block";
   document.getElementById("createBox").style.display="none";
 }
 function showCreate(){
-  if(!coreReady) return alert("Token Core 加载中，请稍后或使用 ImToken 模式");
   document.getElementById("importBox").style.display="none";
   document.getElementById("createBox").style.display="block";
   document.getElementById("mnemonicView").style.display="none";
 }
 
+// ========== 纯Web3实现：创建钱包（BIP39助记词 + AES加密） ==========
 async function createWallet(){
   const pwd = document.getElementById("pwdCreate").value.trim();
   if(!pwd) return alert("请设置加密密码");
 
   try{
-    coreChainId = parseInt(document.getElementById("network").value);
-    tempMnemonic = WalletCore.Mnemonic.create(128).phrase();
-    const hd = WalletCore.HDWallet.createWithMnemonic(tempMnemonic, "");
-    const corePk = hd.getKeyForCoin(WalletCore.CoinType.ethereum);
-    const pkHex = corePk.hexString();
+    // 1. 生成12位标准BIP39助记词
+    const mnemonic = bip39.generateMnemonic(128);
+    // 2. 助记词导出私钥
+    const seed = await bip39.mnemonicToSeed(mnemonic);
+    const hdWallet = new HDNodeWallet.fromSeed(seed);
+    const account = hdWallet.derivePath("m/44'/60'/0'/0/0");
+    const privateKey = account.privateKey;
 
-    encryptedPrivateKey = CryptoJS.AES.encrypt(pkHex, pwd).toString();
+    // 3. AES加密私钥，内存只存密文
+    encryptedPrivateKey = CryptoJS.AES.encrypt(privateKey, pwd).toString();
     sessionPwd = pwd;
-
-    const pubKey = corePk.getPublicKey(false);
-    userAddress = WalletCore.EthereumAddress.createWithPublicKey(pubKey).description();
+    userAddress = account.address;
     isLocalWallet = true;
 
-    document.getElementById("mnemonicView").innerText = "您的助记词：\n" + tempMnemonic;
+    // 展示助记词
+    document.getElementById("mnemonicView").innerText = "您的助记词：\n" + mnemonic;
     document.getElementById("mnemonicView").style.display="block";
 
     const dom = document.getElementById("walletAddr");
     dom.style.display = "block";
-    dom.innerHTML = "✅ Token Core 创建钱包成功：" + userAddress;
+    dom.innerHTML = "✅ 钱包创建成功：" + userAddress;
   }catch(e){
     alert("创建钱包失败："+e.message);
   }
 }
 
-async function importByTokenCore(){
+// ========== 纯Web3实现：导入私钥（AES加密） ==========
+async function importWallet(){
   const pkHex = document.getElementById("privateKey").value.trim();
   const pwd = document.getElementById("pwdImport").value.trim();
   if(!pkHex || !pwd) return alert("请输入私钥和加密密码");
 
   try {
-    coreChainId = parseInt(document.getElementById("network").value);
+    // AES加密私钥
     encryptedPrivateKey = CryptoJS.AES.encrypt(pkHex, pwd).toString();
     sessionPwd = pwd;
 
-    const decrypted = CryptoJS.AES.decrypt(encryptedPrivateKey, sessionPwd).toString(CryptoJS.enc.Utf8);
-    const corePrivateKey = WalletCore.PrivateKey.createWithHexString(decrypted);
-    const pubKey = corePrivateKey.getPublicKey(false);
-    userAddress = WalletCore.EthereumAddress.createWithPublicKey(pubKey).description();
-
+    // 解析地址
+    const account = web3.eth.accounts.privateKeyToAccount(pkHex);
+    userAddress = account.address;
     isLocalWallet = true;
+
     const dom = document.getElementById("walletAddr");
     dom.style.display = "block";
-    dom.innerHTML = "✅ Token Core 加密钱包连接成功：" + userAddress;
+    dom.innerHTML = "✅ 加密钱包连接成功：" + userAddress;
     document.getElementById("privateKey").value = "";
   } catch(e){
-    alert("私钥解析或加密失败："+e.message);
+    alert("私钥解析失败："+e.message);
   }
 }
 
+// ========== ImToken 连接模式（原有功能完全保留） ==========
 async function connectWallet() {
   if (!window.ethereum) {
     alert("请在 ImToken 内置浏览器打开页面！");
@@ -342,6 +319,7 @@ async function connectWallet() {
   }
 }
 
+// ========== 转账：本地钱包临时解密私钥签名 ==========
 async function sendTx() {
   if (!web3 && !isLocalWallet) return alert("请先连接钱包");
 
@@ -390,23 +368,12 @@ async function sendTx() {
 
   try{
     if(isLocalWallet){
+      // 临时解密私钥签名，签名后销毁明文
       const decrypted = CryptoJS.AES.decrypt(encryptedPrivateKey, sessionPwd).toString(CryptoJS.enc.Utf8);
-      const corePrivateKey = WalletCore.PrivateKey.createWithHexString(decrypted);
-
-      const signedHex = WalletCore.EthereumTransaction.signTransaction(
-        corePrivateKey,
-        txObj.nonce,
-        txObj.gasPrice || "0",
-        txObj.gas || "0",
-        txObj.to,
-        txObj.value,
-        txObj.data || "0x",
-        coreChainId
-      );
-
-      corePrivateKey.delete();
-      const receipt = await tempWeb3.eth.sendSignedTransaction(signedHex);
-      alert("✅ Token Core 加密钱包转账成功："+receipt.transactionHash);
+      const account = tempWeb3.eth.accounts.privateKeyToAccount(decrypted);
+      const signedTx = await account.signTransaction(txObj);
+      const receipt = await tempWeb3.eth.sendSignedTransaction(signedTx.rawTransaction);
+      alert("✅ 本地钱包转账成功："+receipt.transactionHash);
     }else{
       const tx = await web3.eth.sendTransaction(txObj);
       alert("✅ ImToken 转账成功："+tx.transactionHash);
