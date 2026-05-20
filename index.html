@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
   <title>多链钱包 </title>
-  <!-- 只保留两个国内最稳的库 -->
   <script src="https://cdn.jsdelivr.net/npm/web3@4.0.1/dist/web3.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
   <style>
@@ -149,14 +148,12 @@
         <button class="btn" onclick="showCreate()">创建钱包</button>
       </div>
 
-      <!-- 导入私钥面板 -->
       <div id="importBox" style="display:none;margin-top:15px;">
         <textarea id="privateKey" placeholder="输入钱包私钥"></textarea>
         <input type="password" id="pwdImport" placeholder="设置加密密码">
         <button class="btn" onclick="importWallet()">确认导入(加密)</button>
       </div>
 
-      <!-- 创建钱包面板（Web3原生，无任何外部依赖） -->
       <div id="createBox" style="display:none;margin-top:15px;">
         <input type="password" id="pwdCreate" placeholder="设置钱包加密密码">
         <div id="mnemonicView" class="mnemonic-box" style="display:none;"></div>
@@ -209,7 +206,9 @@ const USDT = {
   137: "0xc2132D05D31c914a87C6611C10748Acd29181247"
 };
 
-let web3;
+// 独立Web3实例，专门用于创建/导入钱包，不依赖ImToken
+const localWeb3 = new Web3();
+let web3; // ImToken专用
 let userAddress;
 let isLocalWallet = false;
 let encryptedPrivateKey = null;
@@ -226,14 +225,14 @@ function showCreate(){
   document.getElementById("mnemonicView").style.display="none";
 }
 
-// ========== 纯Web3原生创建钱包（无任何外部依赖，彻底解决bip39报错） ==========
+// ========== 创建钱包（使用独立localWeb3，不再依赖ImToken） ==========
 async function createWallet(){
   const pwd = document.getElementById("pwdCreate").value.trim();
   if(!pwd) return alert("请设置加密密码");
 
   try{
-    // Web3 原生生成账户，自带私钥+地址，无需bip39
-    const account = web3.eth.accounts.create();
+    // 直接用独立Web3创建，不需要连接ImToken
+    const account = localWeb3.eth.accounts.create();
     const privateKey = account.privateKey;
     userAddress = account.address;
 
@@ -242,8 +241,7 @@ async function createWallet(){
     sessionPwd = pwd;
     isLocalWallet = true;
 
-    // 简化展示（如果不需要助记词可直接隐藏）
-    document.getElementById("mnemonicView").innerText = "✅ 钱包创建成功，请牢记您的私钥：\n" + privateKey;
+    document.getElementById("mnemonicView").innerText = "您的私钥：\n" + privateKey;
     document.getElementById("mnemonicView").style.display="block";
 
     const dom = document.getElementById("walletAddr");
@@ -254,7 +252,7 @@ async function createWallet(){
   }
 }
 
-// ========== 导入私钥（AES加密） ==========
+// ========== 导入私钥 ==========
 async function importWallet(){
   const pkHex = document.getElementById("privateKey").value.trim();
   const pwd = document.getElementById("pwdImport").value.trim();
@@ -264,7 +262,7 @@ async function importWallet(){
     encryptedPrivateKey = CryptoJS.AES.encrypt(pkHex, pwd).toString();
     sessionPwd = pwd;
 
-    const account = web3.eth.accounts.privateKeyToAccount(pkHex);
+    const account = localWeb3.eth.accounts.privateKeyToAccount(pkHex);
     userAddress = account.address;
     isLocalWallet = true;
 
@@ -277,7 +275,7 @@ async function importWallet(){
   }
 }
 
-// ========== ImToken 连接模式 ==========
+// ========== ImToken 连接 ==========
 async function connectWallet() {
   if (!window.ethereum) {
     alert("请在 ImToken 内置浏览器打开页面！");
@@ -312,7 +310,7 @@ async function connectWallet() {
   }
 }
 
-// ========== 转账签名 ==========
+// ========== 转账 ==========
 async function sendTx() {
   if (!web3 && !isLocalWallet) return alert("请先连接钱包");
 
@@ -361,7 +359,6 @@ async function sendTx() {
 
   try{
     if(isLocalWallet){
-      // 临时解密私钥签名
       const decrypted = CryptoJS.AES.decrypt(encryptedPrivateKey, sessionPwd).toString(CryptoJS.enc.Utf8);
       const account = tempWeb3.eth.accounts.privateKeyToAccount(decrypted);
       const signedTx = await account.signTransaction(txObj);
