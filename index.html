@@ -6,129 +6,33 @@
     <title>真实区块链钱包</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/web3@4.4.0/dist/web3.min.js"></script>
-    <style>
-        body { font-family: 'Segoe UI', system-ui, sans-serif; }
-        .glass { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(12px); }
-    </style>
+    <!-- WalletConnect v2 -->
+    <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.11.0/dist/index.umd.js"></script>
 </head>
 <body class="bg-gradient-to-br from-slate-50 to-blue-50 min-h-screen pb-12">
 
 <div class="max-w-md mx-auto px-4 pt-6">
 
-    <!-- 顶部导航 -->
+    <!-- 顶部 -->
     <div class="flex justify-between items-center mb-8">
         <div class="flex items-center gap-3">
-            <div class="w-9 h-9 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center text-white text-xl font-bold">₿</div>
-            <div>
-                <h1 class="text-2xl font-bold text-slate-800">Real Wallet</h1>
-                <p class="text-xs text-slate-500 -mt-1">Sepolia 测试网</p>
-            </div>
+            <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center text-white text-2xl">₿</div>
+            <h1 class="text-2xl font-bold">Real Wallet</h1>
         </div>
-        
-        <!-- 右上角连接按钮 -->
-        <button onclick="connectImToken()" 
-                class="flex items-center gap-2 bg-white shadow-md px-5 py-2.5 rounded-3xl text-sm font-medium hover:shadow-lg transition-all active:scale-95">
-            <span class="text-xl">🔗</span>
-            <span id="connectText" class="text-slate-700">连接钱包</span>
+        <button onclick="connectWallet()" class="px-5 py-2.5 bg-white rounded-3xl shadow flex items-center gap-2 text-sm font-medium">
+            <span>🔗</span>
+            <span id="connectBtnText">连接 imToken</span>
         </button>
     </div>
 
-    <!-- 余额主卡片 -->
-    <div class="bg-gradient-to-br from-indigo-600 via-blue-600 to-purple-600 rounded-3xl p-8 text-white shadow-2xl mb-8 relative overflow-hidden">
-        <div class="absolute top-6 right-6 w-24 h-24 bg-white/10 rounded-full blur-3xl"></div>
-        
-        <p class="text-white/70 text-sm tracking-widest">ETH 余额</p>
-        <h2 id="balance" class="text-6xl font-bold mt-3 tracking-tighter">0.0000</h2>
-        
-        <div class="mt-8 flex items-center justify-between">
-            <div>
-                <p class="text-white/60 text-xs">地址</p>
-                <p id="address" class="font-mono text-sm break-all mt-1 opacity-90">未连接钱包</p>
-            </div>
-            <button onclick="refreshBalance()" 
-                    class="w-9 h-9 bg-white/20 hover:bg-white/30 rounded-2xl flex items-center justify-center transition">
-                🔄
-            </button>
-        </div>
+    <!-- 余额卡片 -->
+    <div class="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-8 text-white shadow-2xl mb-10">
+        <p class="text-white/70">ETH 余额</p>
+        <h2 id="balance" class="text-6xl font-bold mt-2">0.0000</h2>
+        <p id="address" class="mt-8 font-mono text-sm break-all bg-white/10 p-3 rounded-2xl">未连接钱包</p>
     </div>
 
-    <!-- 操作按钮 -->
     <div class="grid grid-cols-2 gap-4">
-        <button onclick="createWallet()" 
-                class="bg-white rounded-3xl p-6 shadow hover:shadow-xl active:scale-[0.97] transition-all flex flex-col items-center gap-3">
-            <div class="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center text-3xl">➕</div>
-            <span class="font-semibold text-slate-700">创建钱包</span>
-        </button>
-
-        <button onclick="importWallet()" 
-                class="bg-white rounded-3xl p-6 shadow hover:shadow-xl active:scale-[0.97] transition-all flex flex-col items-center gap-3">
-            <div class="w-14 h-14 bg-emerald-100 rounded-2xl flex items-center justify-center text-3xl">📥</div>
-            <span class="font-semibold text-slate-700">导入私钥</span>
-        </button>
-
-        <button onclick="signMessage()" 
-                class="bg-white rounded-3xl p-6 shadow hover:shadow-xl active:scale-[0.97] transition-all flex flex-col items-center gap-3 col-span-2">
-            <div class="w-14 h-14 bg-purple-100 rounded-2xl flex items-center justify-center text-3xl">✍️</div>
-            <span class="font-semibold text-slate-700">签名消息</span>
-        </button>
-
-        <button onclick="openTransfer()" 
-                class="bg-white rounded-3xl p-6 shadow hover:shadow-xl active:scale-[0.97] transition-all flex flex-col items-center gap-3">
-            <div class="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center text-3xl">↗️</div>
-            <span class="font-semibold text-slate-700">转账 ETH</span>
-        </button>
-
-        <button onclick="refreshBalance()" 
-                class="bg-white rounded-3xl p-6 shadow hover:shadow-xl active:scale-[0.97] transition-all flex flex-col items-center gap-3">
-            <div class="w-14 h-14 bg-violet-100 rounded-2xl flex items-center justify-center text-3xl">🔄</div>
-            <span class="font-semibold text-slate-700">刷新余额</span>
-        </button>
-    </div>
-</div>
-
-<script>
-// ...（功能代码保持不变，下面给出核心功能）
-let web3 = new Web3("https://rpc.sepolia.org");
-let currentAccount = null;
-
-function createWallet() {
-    const acc = web3.eth.accounts.create();
-    currentAccount = acc.address;
-    document.getElementById("address").innerText = currentAccount;
-    alert("✅ 钱包创建成功！\n地址：\n" + currentAccount);
-}
-
-function importWallet() {
-    const pk = prompt("请输入私钥：");
-    if (pk) {
-        try {
-            const acc = web3.eth.accounts.privateKeyToAccount(pk);
-            currentAccount = acc.address;
-            document.getElementById("address").innerText = currentAccount;
-            alert("✅ 导入成功！");
-        } catch(e) { alert("❌ 私钥格式错误"); }
-    }
-}
-
-async function connectImToken() {
-    alert("正在唤起 imToken...\n\n请在 imToken 中确认连接此网站");
-    // 这里可以后续继续优化连接逻辑
-}
-
-async function signMessage() {
-    if (!currentAccount) return alert("请先创建钱包或连接 imToken");
-    const msg = prompt("请输入要签名的消息：", "Hello Web3!");
-    if (msg) alert(`✅ 签名成功！\n\n消息：${msg}\n\n（签名功能已就绪）`);
-}
-
-async function refreshBalance() {
-    if (!currentAccount) return alert("请先创建或连接钱包");
-    alert("余额已刷新（演示模式）");
-}
-
-function openTransfer() {
-    alert("转账功能开发中...");
-}
-</script>
-</body>
-</html>
+        <button onclick="createWallet()" class="bg-white p-6 rounded-3xl shadow active:scale-95">创建本地钱包</button>
+        <button onclick="importWallet()" class="bg-white p-6 rounded-3xl shadow active:scale-95">导入私钥</button>
+        <button onclick="sign
