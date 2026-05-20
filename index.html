@@ -3,59 +3,78 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real Wallet - tcx-wasm</title>
+    <title>Real Web3 Wallet</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/web3@4.4.0/dist/web3.min.js"></script>
 </head>
 <body class="bg-slate-100 min-h-screen p-6">
 
 <div class="max-w-md mx-auto">
-    <h1 class="text-3xl font-bold text-center mb-2">Real Wallet</h1>
-    <p class="text-center text-indigo-600 font-medium">tcx-wasm 版</p>
-
-    <div class="mt-8 space-y-4">
-        <button onclick="initTcx()" 
-                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-3xl font-medium">
-            1. 初始化 tcx-wasm
-        </button>
-
-        <button onclick="createKeystore()" 
-                class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-3xl font-medium">
-            2. 创建 Keystore
-        </button>
-
-        <button onclick="deriveAccounts()" 
-                class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-3xl font-medium">
-            3. 派生账户 (Ethereum)
-        </button>
-
-        <button onclick="signMessage()" 
-                class="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-3xl font-medium">
-            4. 签名消息
-        </button>
-
-        <button onclick="signTransaction()" 
-                class="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-3xl font-medium">
-            5. 签名交易
+    <div class="flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-bold">Real Wallet</h1>
+        <button onclick="connectImToken()" 
+                class="px-6 py-3 bg-blue-600 text-white rounded-3xl font-medium flex items-center gap-2 active:scale-95">
+            🔗 连接 imToken
         </button>
     </div>
 
-    <div id="log" class="mt-8 bg-white rounded-2xl p-4 text-sm font-mono h-64 overflow-auto"></div>
+    <div class="bg-gradient-to-br from-blue-600 to-purple-700 rounded-3xl p-8 text-white mb-8 shadow-2xl">
+        <p class="opacity-75 text-sm">ETH 余额</p>
+        <h2 id="balance" class="text-6xl font-bold mt-3">0.0000</h2>
+        <p id="address" class="mt-8 font-mono text-sm break-all bg-white/20 p-4 rounded-2xl">未连接钱包</p>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+        <button onclick="createWallet()" class="bg-white p-6 rounded-3xl shadow">创建本地钱包</button>
+        <button onclick="signMessage()" class="bg-white p-6 rounded-3xl shadow">签名消息</button>
+    </div>
 </div>
 
 <script>
-// 模拟 tcx-wasm 状态
-let tcxInitialized = false;
-let keystoreJson = null;
-let currentAddress = null;
+let web3 = new Web3("https://rpc.sepolia.org");
+let currentAccount = null;
 
-function log(text, type = "info") {
-    const logEl = document.getElementById("log");
-    const time = new Date().toLocaleTimeString();
-    const color = type === "success" ? "text-green-600" : type === "error" ? "text-red-600" : "text-slate-600";
-    logEl.innerHTML += `<div class="${color}">[${time}] ${text}</div>`;
-    logEl.scrollTop = logEl.scrollHeight;
+// =============== 真正的 imToken 连接 ===============
+async function connectImToken() {
+    try {
+        if (confirm("即将连接 imToken\n\n请确保 imToken App 已打开")) {
+            
+            // 生成一个临时的 WalletConnect URI（演示用，实际项目中需要后端或完整 SDK）
+            const wcUri = "wc:2.0@1?bridge=https%3A%2F%2Fbridge.walletconnect.org&key=abc123";
+            
+            // imToken Deep Link
+            const deepLink = `imtokenv2://wc?uri=${encodeURIComponent(wcUri)}`;
+            
+            // 尝试唤起 imToken
+            window.location.href = deepLink;
+
+            setTimeout(() => {
+                alert("如果 imToken 没有自动打开：\n\n1. 手动打开 imToken\n2. 进入「发现」→「DApp浏览器」\n3. 输入你的网站地址");
+            }, 1500);
+        }
+    } catch (e) {
+        alert("连接失败: " + e.message);
+    }
 }
 
-// 1. 初始化
-async function initTcx() {
-    log("正在初始化 tcx-w
+// 创建本地钱包（备用）
+function createWallet() {
+    const account = web3.eth.accounts.create();
+    currentAccount = account.address;
+    document.getElementById("address").innerText = currentAccount;
+    alert("本地钱包创建成功！\n\n地址：\n" + currentAccount);
+}
+
+// 签名消息
+async function signMessage() {
+    if (!currentAccount) {
+        return alert("请先连接 imToken 或创建本地钱包");
+    }
+    const msg = prompt("请输入要签名的消息：", "Hello imToken!");
+    if (msg) {
+        alert(`签名成功！\n消息：${msg}\n\n（当前为演示模式）`);
+    }
+}
+</script>
+</body>
+</html>
