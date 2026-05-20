@@ -3,61 +3,59 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>真实区块链钱包</title>
+    <title>Real Wallet - tcx-wasm</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/web3@4.4.0/dist/web3.min.js"></script>
 </head>
 <body class="bg-slate-100 min-h-screen p-6">
 
 <div class="max-w-md mx-auto">
-    <h1 class="text-3xl font-bold text-center mb-8">Real Web3 Wallet</h1>
+    <h1 class="text-3xl font-bold text-center mb-2">Real Wallet</h1>
+    <p class="text-center text-indigo-600 font-medium">tcx-wasm 版</p>
 
-    <div class="bg-gradient-to-br from-blue-600 to-purple-600 text-white rounded-3xl p-8 mb-8">
-        <p class="opacity-75">ETH 余额</p>
-        <h2 id="balance" class="text-5xl font-bold mt-2">0.0000</h2>
-        <p id="address" class="mt-6 font-mono break-all bg-white/20 p-3 rounded-2xl">未连接钱包</p>
+    <div class="mt-8 space-y-4">
+        <button onclick="initTcx()" 
+                class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-4 rounded-3xl font-medium">
+            1. 初始化 tcx-wasm
+        </button>
+
+        <button onclick="createKeystore()" 
+                class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-4 rounded-3xl font-medium">
+            2. 创建 Keystore
+        </button>
+
+        <button onclick="deriveAccounts()" 
+                class="w-full bg-blue-600 hover:bg-blue-700 text-white py-4 rounded-3xl font-medium">
+            3. 派生账户 (Ethereum)
+        </button>
+
+        <button onclick="signMessage()" 
+                class="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-3xl font-medium">
+            4. 签名消息
+        </button>
+
+        <button onclick="signTransaction()" 
+                class="w-full bg-orange-600 hover:bg-orange-700 text-white py-4 rounded-3xl font-medium">
+            5. 签名交易
+        </button>
     </div>
 
-    <button onclick="connectImToken()" 
-            class="w-full bg-gradient-to-r from-blue-500 to-purple-600 text-white py-8 rounded-3xl text-xl font-medium shadow-lg active:scale-95 transition">
-        🔗 连接 imToken 钱包
-    </button>
-
-    <div class="mt-8 text-center text-sm text-slate-500">
-        <p>使用方法：</p>
-        <p>1. 打开 imToken App</p>
-        <p>2. 点击上方按钮</p>
-        <p>3. 在 imToken 中确认连接</p>
-    </div>
+    <div id="log" class="mt-8 bg-white rounded-2xl p-4 text-sm font-mono h-64 overflow-auto"></div>
 </div>
 
 <script>
-let currentAccount = null;
+// 模拟 tcx-wasm 状态
+let tcxInitialized = false;
+let keystoreJson = null;
+let currentAddress = null;
 
-// 连接 imToken（最稳定方式）
-function connectImToken() {
-    const message = "即将打开 imToken 进行连接...\n\n请确保 imToken 已登录并在后台运行";
-
-    if (confirm(message)) {
-        // WalletConnect 通用链接（imToken 支持最好的一种方式）
-        const wcLink = "https://walletconnect.com/wc?uri=wc:2.0";
-        
-        // 尝试 deep link 唤起 imToken
-        window.location.href = `imtokenv2://wc?uri=${encodeURIComponent(wcLink)}`;
-
-        // 备用方案提示
-        setTimeout(() => {
-            alert("如果没有自动跳转 imToken：\n\n1. 手动打开 imToken\n2. 点击「发现」→「DApp浏览器」\n3. 输入你的网站地址连接");
-        }, 1200);
-    }
+function log(text, type = "info") {
+    const logEl = document.getElementById("log");
+    const time = new Date().toLocaleTimeString();
+    const color = type === "success" ? "text-green-600" : type === "error" ? "text-red-600" : "text-slate-600";
+    logEl.innerHTML += `<div class="${color}">[${time}] ${text}</div>`;
+    logEl.scrollTop = logEl.scrollHeight;
 }
 
-// 测试用 - 模拟连接成功
-function simulateConnect() {
-    currentAccount = "0x" + Math.random().toString(16).slice(2, 42);
-    document.getElementById("address").innerText = currentAccount;
-    alert("✅ 模拟连接成功！\n地址：" + currentAccount);
-}
-</script>
-</body>
-</html>
+// 1. 初始化
+async function initTcx() {
+    log("正在初始化 tcx-w
