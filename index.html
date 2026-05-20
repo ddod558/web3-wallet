@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>二次元漫画风 | 多链钱包 DApp</title>
+  <title>多链钱包</title>
   <script src="https://cdn.jsdelivr.net/npm/web3@4.0.1/dist/web3.min.js"></script>
   <style>
     * {
@@ -15,25 +15,25 @@
 
     body {
       min-height: 100vh;
-      background: linear-gradient(135deg, #1a103f 0%, #201b4e 50%, #0f2040 100%);
+      /* 全屏紫色动漫背景（哈基米、Pepe、蜡笔小新风格） */
+      background: url('https://i.imgur.com/5R7k8Lx.png') no-repeat center center fixed;
+      background-size: cover;
       color: #fff;
       padding: 30px 15px;
       position: relative;
       overflow-x: hidden;
     }
 
-    /* 漫画人物背景装饰 */
-    .comic-deco {
-      position: fixed;
-      z-index: 0;
-      opacity: 0.12;
-      pointer-events: none;
-      border-radius: 12px;
+    /* 主标题样式（截图大标题） */
+    .main-title {
+      text-align: center;
+      font-size: 42px;
+      font-weight: bold;
+      margin-bottom: 30px;
+      color: #ffffff;
+      text-shadow: 0 0 12px #6a4cff, 0 0 25px #9966ff;
+      letter-spacing: 3px;
     }
-    .deco1 { top: 5%; left: 3%; width: 160px; }
-    .deco2 { top: 10%; right: 5%; width: 180px; }
-    .deco3 { bottom: 8%; left: 8%; width: 200px; }
-    .deco4 { bottom: 5%; right: 3%; width: 170px; }
 
     /* 主容器 */
     .container {
@@ -43,42 +43,22 @@
       z-index: 2;
     }
 
-    /* 标题样式 */
-    .main-title {
-      text-align: center;
-      font-size: 32px;
-      font-weight: bold;
-      margin-bottom: 30px;
-      text-shadow: 0 0 10px #7b61ff, 0 0 20px #4facff;
-      letter-spacing: 2px;
-      background: linear-gradient(90deg, #7b61ff, #4facff, #ff7cb9);
-      -webkit-background-clip: text;
-      color: transparent;
-    }
-
-    /* 漫画风卡片 */
+    /* 卡片完全匹配截图深色圆角样式 */
     .card {
-      background: rgba(255, 255, 255, 0.08);
-      backdrop-filter: blur(10px);
-      border: 1px solid rgba(123, 97, 255, 0.3);
-      border-radius: 20px;
-      padding: 22px;
-      margin-bottom: 20px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-      transition: all 0.3s ease;
-    }
-
-    .card:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 10px 35px rgba(123, 97, 255, 0.25);
-      border-color: rgba(79, 172, 255, 0.5);
+      background: rgba(35, 25, 75, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(130, 100, 255, 0.4);
+      border-radius: 24px;
+      padding: 24px;
+      margin-bottom: 22px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
     }
 
     .card-title {
-      font-size: 19px;
-      margin-bottom: 18px;
-      padding-bottom: 8px;
-      border-bottom: 1px dashed rgba(123, 97, 255, 0.4);
+      font-size: 22px;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px dashed rgba(180, 150, 255, 0.4);
       display: flex;
       align-items: center;
       gap: 10px;
@@ -87,92 +67,64 @@
     .card-title::before {
       content: "★";
       color: #ff7cb9;
+      font-size: 22px;
     }
 
-    /* 表单元素样式 */
+    /* 下拉框、输入框样式 */
     select, input {
       width: 100%;
-      padding: 14px 15px;
-      margin: 10px 0;
-      border-radius: 12px;
-      border: 1px solid rgba(79, 172, 255, 0.4);
-      background: rgba(0, 0, 0, 0.25);
+      padding: 16px 18px;
+      margin: 12px 0;
+      border-radius: 16px;
+      border: 1px solid rgba(100, 160, 255, 0.45);
+      background: rgba(25, 15, 55, 0.75);
       color: #fff;
-      font-size: 15px;
+      font-size: 17px;
       outline: none;
-      transition: 0.3s;
     }
 
-    select:focus, input:focus {
-      border-color: #7b61ff;
-      box-shadow: 0 0 8px rgba(123, 97, 255, 0.5);
-    }
-
-    /* 漫画风按钮 */
+    /* 主按钮渐变样式（和截图完全一致） */
     .btn {
       width: 100%;
-      padding: 14px;
-      margin-top: 12px;
-      border-radius: 12px;
+      padding: 16px;
+      margin-top: 14px;
+      border-radius: 16px;
       border: none;
-      font-size: 16px;
+      font-size: 18px;
       font-weight: bold;
       cursor: pointer;
-      transition: all 0.3s ease;
-    }
-
-    .btn-primary {
-      background: linear-gradient(90deg, #7b61ff, #4facff);
+      background: linear-gradient(90deg, #7b42ff, #42a0ff);
       color: #fff;
     }
 
-    .btn-success {
-      background: linear-gradient(90deg, #36d1dc, #5b86e5);
-      color: #fff;
-    }
-
-    .btn:hover {
-      transform: scale(1.02);
-      box-shadow: 0 0 15px rgba(123, 97, 255, 0.6);
-    }
-
-    /* 文本展示区域 */
+    /* 连接成功提示框 */
     .show-text {
-      margin-top: 15px;
-      padding: 15px;
-      background: rgba(0, 0, 0, 0.25);
-      border-radius: 12px;
+      margin-top: 16px;
+      padding: 16px;
+      background: rgba(25, 15, 55, 0.75);
+      border-radius: 16px;
       border-left: 4px solid #ff7cb9;
       word-break: break-all;
-      font-size: 14px;
-      line-height: 1.6;
+      font-size: 15px;
+      line-height: 1.7;
     }
 
     /* 移动端适配 */
     @media (max-width: 600px) {
       .main-title {
-        font-size: 26px;
+        font-size: 32px;
       }
       .card {
-        padding: 16px;
-      }
-      .comic-deco {
-        display: none;
+        padding: 18px;
       }
     }
   </style>
 </head>
 <body>
-  <!-- 漫画人物装饰 -->
-  <img class="comic-deco deco1" src="https://picsum.photos/id/237/180/220" alt="漫画人物">
-  <img class="comic-deco deco2" src="https://picsum.photos/id/96/200/240" alt="漫画人物">
-  <img class="comic-deco deco3" src="https://picsum.photos/id/65/220/260" alt="漫画人物">
-  <img class="comic-deco deco4" src="https://picsum.photos/id/119/190/230" alt="漫画人物">
-
   <div class="container">
-    <h1 class="main-title">二次元多链钱包 DApp</h1>
+    <h1 class="main-title">多链钱包</h1>
 
-    <!-- 网络选择 -->
+    <!-- 主网切换 -->
     <div class="card">
       <h3 class="card-title">主网切换中心</h3>
       <select id="network">
@@ -182,14 +134,14 @@
       </select>
     </div>
 
-    <!-- ImToken 连接 -->
+    <!-- ImToken连接 -->
     <div class="card">
       <h3 class="card-title">ImToken 钱包连接</h3>
-      <button class="btn btn-primary" onclick="connectWallet()">连接 ImToken 钱包</button>
+      <button class="btn" onclick="connectWallet()">连接 ImToken 钱包</button>
       <div id="walletAddr" class="show-text" style="display: none;"></div>
     </div>
 
-    <!-- 转账模块 -->
+    <!-- 代币转账 -->
     <div class="card">
       <h3 class="card-title">代币转账（支持自定义Gas）</h3>
       <select id="token">
@@ -199,14 +151,14 @@
       <input type="text" id="to" placeholder="输入接收钱包地址 0x...">
       <input type="number" id="amount" placeholder="输入转账数量">
       <input type="number" id="gasPrice" placeholder="Gas Price(Gwei) 留空为自动">
-      <button class="btn btn-success" onclick="sendTx()">确认发起转账</button>
+      <button class="btn" onclick="sendTx()">确认发起转账</button>
     </div>
 
     <!-- 交易查询 -->
     <div class="card">
       <h3 class="card-title">链上交易溯源查询</h3>
       <input type="text" id="txHash" placeholder="输入交易哈希 TxHash">
-      <button class="btn btn-primary" onclick="queryTx()">查询链上详情</button>
+      <button class="btn" onclick="queryTx()">查询链上详情</button>
       <div id="txResult" class="show-text" style="display: none;"></div>
     </div>
   </div>
@@ -235,6 +187,24 @@ const USDT = {
 let web3;
 let userAddress;
 
+// 页面加载自动检测已连接钱包（无需重复签名）
+window.onload = async function() {
+  if(window.ethereum) {
+    try {
+      const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+      if(accounts.length > 0) {
+        userAddress = accounts[0];
+        web3 = new Web3(window.ethereum);
+        const dom = document.getElementById("walletAddr");
+        dom.style.display = "block";
+        dom.innerHTML = "✅ 连接成功：" + userAddress;
+      }
+    } catch(e) {
+      console.log("等待手动连接");
+    }
+  }
+};
+
 // 连接 ImToken
 async function connectWallet() {
   if (!window.ethereum) {
@@ -255,13 +225,13 @@ async function connectWallet() {
 
     const dom = document.getElementById("walletAddr");
     dom.style.display = "block";
-    dom.innerText = "✅ 连接成功：" + userAddress;
+    dom.innerHTML = "✅ 连接成功：" + userAddress;
   } catch (e) {
     alert("连接失败：" + e.message);
   }
 }
 
-// 转账
+// 转账功能
 async function sendTx() {
   if (!web3) return alert("请先连接钱包");
 
@@ -305,7 +275,7 @@ async function sendTx() {
   }
 }
 
-// 查询交易
+// 交易查询
 async function queryTx() {
   const hash = document.getElementById("txHash").value.trim();
   if (!hash) return alert("请输入交易哈希");
