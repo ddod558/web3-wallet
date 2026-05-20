@@ -1,72 +1,199 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <title>多链钱包原型</title>
-  <script src="https://cdn.jsdelivr.net/npm/web3@4.0.1/dist/web3.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bip39@3.1.0/dist/bip39.min.js"></script>
-</head>
-<body>
-  <h2>多链钱包 - ETH / BSC / Polygon</h2>
+<html lang="zh-CN<head>
+ <meta charset="UTF-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+二次元漫画风 | 多链钱包
+<script src="https://cdn.jsdelivr.net/npm/web3@4.0.1/dist/web3.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: "Microsoft Yahei", sans-serif;
+    }
 
-  <!-- 网络切换 -->
-  <div>
-    <h4>选择主网</h4>
-    <select id="network">
-      <option value="1">ETH 主网</option>
-      <option value="56">BNB Chain(BSC)</option>
-      <option value="137">Polygon</option>
-    </select>
-  </div>
+    body {
+      min-height: 100vh;
+      background: linear-gradient(135deg, #1a103f 0%, #201b4e 50%, #0f2040 100%);
+      color: #fff;
+      padding: 30px 15px;
+      position: relative;
+      overflow-x: hidden;
+    }
 
-  <!-- 助记词创建 -->
-  <div>
-    <h4>创建钱包（12/24词）</h4>
-    <select id="wordCount">
-      <option value="12">12 词助记词</option>
-      <option value="24">24 词助记词</option>
-    </select>
-    <button onclick="createWallet()">生成助记词</button>
-    <div id="mnemonic" style="margin:10px 0;"></div>
-  </div>
+    /* 漫画人物背景装饰 */
+    .comic-deco {
+      position: fixed;
+      z-index: 0;
+      opacity: 0.15;
+      pointer-events: none;
+    }
+    .deco1 { top: 5%; left: 3%; width: 180px; }
+    .deco2 { top: 10%; right: 5%; width: 200px; }
+    .deco3 { bottom: 8%; left: 8%; width: 220px; }
+    .deco4 { bottom: 5%; right: 3%; width: 190px; }
 
-  <!-- 转账 -->
-  <div>
-    <h4>代币转账</h4>
-    <select id="token">
-      <option value="BNB">BNB</option>
-      <option value="USDT">USDT</option>
-    </select>
-    <br>
-    接收地址：<input type="text" id="to" placeholder="0x..."><br>
-    转账数量：<input type="number" id="amount"><br>
-    Gas Price(Gwei)：<input type="number" id="gasPrice" placeholder="自动留空"><br>
-    <button onclick="sendTx()">发起转账</button>
-  </div>
+    /* 主容器 */
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 2;
+    }
 
-  <!-- 交易记录 -->
-  <div>
-    <h4>交易哈希查询</h4>
-    <input type="text" id="txHash" placeholder="输入TxHash">
-    <button onclick="queryTx()">链上查询</button>
-    <div id="txResult"></div>
-  </div>
+    /* 标题样式 */
+    .main-title {
+      text-align: center;
+      font-size: 36px;
+      font-weight: bold;
+      margin-bottom: 40px;
+      text-shadow: 0 0 10px #7b61ff, 0 0 20px #4facff;
+      letter-spacing: 2px;
+      background: linear-gradient(90deg, #7b61ff, #4facff, #ff7cb9);
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    /* 漫画风卡片 */
+    .card {
+      background: rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(123, 97, 255, 0.3);
+      border-radius: 20px;
+      padding: 25px;
+      margin-bottom: 25px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+      transition: all 0.3s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 12px 40px rgba(123, 97, 255, 0.25);
+      border-color: rgba(79, 172, 255, 0.5);
+    }
+
+    .card-title {
+      font-size: 20px;
+      margin-bottom: 20px;
+      padding-bottom: 10px;
+      border-bottom: 1px dashed rgba(123, 97, 255, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .card-title::before {
+      content: "★";
+      color: #ff7cb9;
+    }
+
+    /* 表单元素样式 */
+    select, input {
+      width: 100%;
+      padding: 12px 15px;
+      margin: 10px 0;
+      border-radius: 12px;
+      border: 1px solid rgba(79, 172, 255, 0.4);
+      background: rgba(0, 0, 0, 0.2);
+      color: #fff;
+      font-size: 15px;
+      outline: none;
+      transition: 0.3s;
+    }
+
+    select:focus, input:focus {
+      border-color: #7b61ff;
+      box-shadow: 0 0 8px rgba(123, 97, 255, 0.5);
+    }
+
+    /* 漫画风按钮 */
+    .btn {
+      width: 100%;
+      padding: 14px;
+      margin-top: 12px;
+      border-radius: 12px;
+      border: none;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn-primary {
+      background: linear-gradient(90deg, #7b61ff, #4facff);
+      color: #fff;
+    }
+
+    .btn-success {
+      background: linear-gradient(90deg, #36d1dc, #5b86e5);
+      color: #fff;
+    }
+
+    .btn:hover {
+      transform: scale(1.02);
+      box-shadow: 0 0 15px rgba(123, 97, 255, 0.6);
+    }
+
+    /* 文本展示区域 */
+    .show-text {
+      margin-top: 15px;
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 12px;
+      border-left: 4px solid #ff7cb9;
+      word-break: break-all;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    /* 响应式适配 */
+    @media (max-width: 600px) {
+      .main-title {
+        font-size: 26px;
+      }
+      .card {
+        padding: 18px;
+      }
+      .comic-deco {
+        display: none;
+      }
+   </style><body<!-- 漫画人物装饰图 -->
+ <img class="comic-deco deco1" src="https://picsum.photos/id/237/180/220" alt="漫画人物">
+  <img class="comic-deco deco2" src="https://picsum.photos/id/96/200/240" alt="漫画人物<img class="comic-deco deco3" src="https://picsum.photos/id/65/220/260" alt="漫画人物">
+<img class="comic-deco deco4" src="https://picsum.photos/id/119/190/230" alt="漫画人物">
+
+ <div class="container"><h1 class="main-title">二次元多</h<!-- 网络选择卡片 -->
+   <div class="card"><h3 class="card-title">主网</h3><select id="<option value="1">✨ ETH</option<option value="56">✨ BNB Chain 币安智能</option>
+       <option value="137">✨ Polygon </option>
+</select>
+   <!-- 钱包连接卡片（ImToken专属） -->
+   <div class="card"><h3 class="card-title">ImToken</h3<button class="btn btn-primary" onclick="connectWallet()">连接 Im</button><div id="walletAddr" class="show-text" style="display:</div>
+   <!-- 代币转账卡片 -->
+<div class="card<h3 class="card-title">代币转账功能（支持Gas自定义</h3>
+<select id="token<option value="BNB">🪙 B</option<option value="USDT">🪙 US</option</select><input type="text" id="to" placeholder="输入接收钱包地址 0x...">
+<input type="number" id="amount" placeholder="输入转账数量">
+<input type="number" id="gasPrice" placeholder="Gas Price(Gwei) 留空为自动<button class="btn btn-success" onclick="sendTx()">确认发起</button>
+   <!-- 交易查询卡片 -->
+<div class="card<h3 class="card-title">链</h<input type="text" id="txHash" placeholder="输入交易哈希 TxHash">
+<button class="btn btn-primary" onclick="queryTx()">查询链上详情</button>
+      <div id="txResult" class="show-text" style</div</div></div>
 
 <script>
-// 链配置
+// 链节点配置
 const RPC = {
   1: "https://mainnet.infura.io/v3/YOUR_KEY",
   56: "https://bsc-dataseed.binance.org",
   137: "https://polygon-rpc.com"
 };
 
+// 区块浏览器地址
 const EXPLORER = {
   1: "https://etherscan.io/tx/",
   56: "https://bscscan.com/tx/",
   137: "https://polygonscan.com/tx/"
 };
 
-// USDT 合约地址（主网）
+// 各链USDT合约地址
 const USDT = {
   1: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
   56: "0x55d398326f99059fF775485246999027B3197955",
@@ -74,79 +201,104 @@ const USDT = {
 };
 
 let web3;
-let wallet;
+let userAddress;
 
-// 初始化 web3
-function initWeb3() {
+// 连接ImToken钱包
+async function connectWallet() {
+  if (!window.ethereum) {
+    alert("⚠️ 请在 ImToken 内置浏览器打开页面！");
+    return;
+  }
+
   const chainId = document.getElementById("network").value;
-  web3 = new Web3(RPC[chainId]);
+  try {
+    // 切换对应公链
+    await window.ethereum.request({
+      method: 'wallet_switchEthereumChain',
+      params: [{ chainId: '0x' + parseInt(chainId).toString(16) }]
+    });
+
+    // 获取钱包地址
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    userAddress = accounts[0];
+    web3 = new Web3(window.ethereum);
+
+    const dom = document.getElementById("walletAddr");
+    dom.style.display = "block";
+    dom.innerText = `✅ 钱包连接成功\n钱包地址：${userAddress}`;
+  } catch (e) {
+    alert("❌ 钱包连接失败：" + e.message);
+  }
 }
 
-// 创建钱包 12/24 助记词
-async function createWallet() {
-  initWeb3();
-  const wordCnt = parseInt(document.getElementById("wordCount").value);
-  const strength = wordCnt === 12 ? 128 : 256;
-  const mnemonic = bip39.generateMnemonic(strength);
-  document.getElementById("mnemonic").innerText = mnemonic;
-
-  const seed = await bip39.mnemonicToSeed(mnemonic);
-  wallet = web3.eth.accounts.privateKeyToAccount(web3.utils.bytesToHex(seed.slice(0,32)));
-  alert("钱包地址：" + wallet.address);
-}
-
-// 转账
+// 发起转账
 async function sendTx() {
-  initWeb3();
+  if (!web3) return alert("⚠️ 请先连接ImToken钱包！");
+  
   const chainId = document.getElementById("network").value;
   const token = document.getElementById("token").value;
-  const to = document.getElementById("to").value;
+  const to = document.getElementById("to").value.trim();
   const amount = document.getElementById("amount").value;
   const gasPrice = document.getElementById("gasPrice").value;
 
-  let tx;
+  if(!to || !amount) return alert("⚠️ 请填写完整转账信息！");
+
   const gasOpt = gasPrice ? {gasPrice: web3.utils.toWei(gasPrice, 'gwei')} : {};
 
-  if(token === "BNB"){
-    tx = {
-      from: wallet.address,
-      to: to,
-      value: web3.utils.toWei(amount, 'ether'),
-      ...gasOpt
-    }
-  }else{
-    const usdtAddr = USDT[chainId];
-    const data = web3.eth.abi.encodeFunctionCall({
-      name: 'transfer',
-      type: 'function',
-      inputs: [
-        {type:'address',name:'to'},
-        {type:'uint256',name:'value'}
-      ]
-    }, [to, web3.utils.toWei(amount, 'mwei')]);
+  try {
+    if(token === "BNB") {
+      const tx = await web3.eth.sendTransaction({
+        from: userAddress,
+        to: to,
+        value: web3.utils.toWei(amount, 'ether'),
+        ...gasOpt
+      });
+      alert(`✅ BNB转账成功！\n交易哈希：${tx.transactionHash}`);
+    } else {
+      const usdtAddr = USDT[chainId];
+      // USDT转账ABI
+      const data = web3.eth.abi.encodeFunctionCall({
+        name: 'transfer',
+        type: 'function',
+        inputs: [{type:'address',name:'to'},{type:'uint256',name:'value'}]
+      }, [to, web3.utils.toWei(amount, 'mwei')]);
 
-    tx = {
-      from: wallet.address,
-      to: usdtAddr,
-      data: data,
-      ...gasOpt
+      const tx = await web3.eth.sendTransaction({
+        from: userAddress,
+        to: usdtAddr,
+        data: data,
+        ...gasOpt
+      });
+      alert(`✅ USDT转账成功！\n交易哈希：${tx.transactionHash}`);
     }
+  } catch (e) {
+    alert("❌ 转账失败：" + e.message);
+    console.error(e);
   }
-
-  const signed = await web3.eth.accounts.signTransaction(tx, wallet.privateKey);
-  const receipt = await web3.eth.sendSignedTransaction(signed.rawTransaction);
-  alert("交易成功！哈希：" + receipt.transactionHash);
 }
 
-// 链上查询交易
+// 链上交易查询
 async function queryTx() {
-  initWeb3();
-  const hash = document.getElementById("txHash").value;
+  const hash = document.getElementById("txHash").value.trim();
+  if(!hash) return alert("⚠️ 请输入交易哈希！");
+
   const chainId = document.getElementById("network").value;
-  const res = await web3.eth.getTransactionReceipt(hash);
-  document.getElementById("txResult").innerHTML = 
-    JSON.stringify(res,null,2) + "<br>浏览器："+EXPLORER[chainId]+hash;
+  const rpc = new Web3(RPC[chainId]);
+  
+  try {
+    const res = await rpc.eth.getTransactionReceipt(hash);
+    const dom = document.getElementById("txResult");
+    dom.style.display = "block";
+    dom.innerHTML = `
+      ✅ 查询成功！<br>
+      交易状态：${res.status ? '交易成功' : '交易失败'}<br>
+      区块高度：${res.block<br>
+      消耗Gas：${res<br>
+      区块浏览器：<a style="color:#4facff" target="_blank" href="${EXPLORER[chainId]+hash}">点击查看详情<br>
+      完整数据：${JSON.stringify(res,null,2)}
+    `;
+  } catch (e) {
+    alert("❌ 查询失败，哈希无效或网络错误");
+  }
 }
-</script>
-</body>
-</html>
+</body></html>
