@@ -15,8 +15,8 @@
 
     body {
       min-height: 100vh;
-      /* 更换为新的紫色哈基米+Pepe卡通全屏背景 */
-      background: url('https://i.imgur.com/8Z7y9xL.png') no-repeat center center fixed;
+      /* 紫色哈基米+Pepe卡通全屏背景 */
+      background: url('https://i.imgur.com/NlF8VQd.png') no-repeat center center fixed;
       background-size: cover;
       color: #fff;
       padding: 30px 15px;
@@ -143,16 +143,19 @@
       <div id="walletAddr" class="show-text" style="display: none;"></div>
     </div>
 
-    <!-- 代币转账 -->
+    <!-- 代币转账（新增ETH、ETH-USDT，保留BNB自定义Gas） -->
     <div class="card">
       <h3 class="card-title">代币转账（支持自定义Gas）</h3>
       <select id="token">
+        <option value="ETH">🪙 ETH 原生代币</option>
+        <option value="ETH_USDT">🪙 ETH链 USDT 稳定币</option>
         <option value="BNB">🪙 BNB 原生代币</option>
-        <option value="USDT">🪙 USDT 稳定币</option>
+        <option value="BSC_USDT">🪙 BSC链 USDT 稳定币</option>
       </select>
       <input type="text" id="to" placeholder="输入接收钱包地址 0x...">
       <input type="number" id="amount" placeholder="输入转账数量">
       <input type="number" id="gasPrice" placeholder="Gas Price(Gwei) 留空为自动">
+      <input type="number" id="gasLimit" placeholder="Gas Limit 留空自动（ETH推荐21000，BNB推荐210000）">
       <button class="btn" onclick="sendTx()">确认发起转账</button>
     </div>
 
@@ -179,10 +182,10 @@ const EXPLORER = {
   137: "https://polygonscan.com/tx/"
 };
 
-// USDT 合约地址
+// 各链 USDT 合约地址
 const USDT = {
-  1: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
-  56: "0x55d398326f99059fF775485246999027B3197955",
+  1: "0xdAC17F958D2ee523a2206206994597C13D831ec7", // ETH主网USDT
+  56: "0x55d398326f99059fF775485246999027B3197955", // BSC USDT
   137: "0xc2132D05D31c914a87C6611C10748Acd29181247"
 };
 
@@ -224,7 +227,7 @@ async function connectWallet() {
   }
 }
 
-// 转账功能
+// 转账功能（已支持 ETH / ETH-USDT / BNB / BSC-USDT，全支持自定义Gas）
 async function sendTx() {
   if (!web3) return alert("请先连接并签名钱包");
 
@@ -233,22 +236,32 @@ async function sendTx() {
   const to = document.getElementById("to").value.trim();
   const amount = document.getElementById("amount").value;
   const gasPrice = document.getElementById("gasPrice").value;
+  const gasLimit = document.getElementById("gasLimit").value;
 
   if (!to || !amount) return alert("请填写完整信息");
 
-  const gasOpt = gasPrice ? { gasPrice: web3.utils.toWei(gasPrice, 'gwei') } : {};
+  // 自定义Gas配置
+  const gasOpt = {};
+  if(gasPrice) gasOpt.gasPrice = web3.utils.toWei(gasPrice, 'gwei');
+  if(gasLimit) gasOpt.gas = gasLimit;
 
   try {
-    if (token === "BNB") {
+    // ETH 原生转账
+    if (token === "ETH") {
+      if(chainId !== "1") return alert("请先切换到 ETH 主网！");
       const tx = await web3.eth.sendTransaction({
         from: userAddress,
         to: to,
         value: web3.utils.toWei(amount, 'ether'),
         ...gasOpt
       });
-      alert("转账成功！哈希：" + tx.transactionHash);
-    } else {
-      const usdtAddr = USDT[chainId];
+      alert("✅ ETH 转账成功！哈希：" + tx.transactionHash);
+    }
+
+    // ETH 链 USDT 转账
+    else if (token === "ETH_USDT") {
+      if(chainId !== "1") return alert("请先切换到 ETH 主网！");
+      const usdtAddr = USDT[1];
       const data = web3.eth.abi.encodeFunctionCall({
         name: 'transfer',
         type: 'function',
@@ -261,10 +274,41 @@ async function sendTx() {
         data: data,
         ...gasOpt
       });
-      alert("转账成功！哈希：" + tx.transactionHash);
+      alert("✅ ETH-USDT 转账成功！哈希：" + tx.transactionHash);
+    }
+
+    // BNB 原生转账
+    else if (token === "BNB") {
+      if(chainId !== "56") return alert("请先切换到 BNB Chain！");
+      const tx = await web3.eth.sendTransaction({
+        from: userAddress,
+        to: to,
+        value: web3.utils.toWei(amount, 'ether'),
+        ...gasOpt
+      });
+      alert("✅ BNB 转账成功！哈希：" + tx.transactionHash);
+    }
+
+    // BSC 链 USDT 转账
+    else if (token === "BSC_USDT") {
+      if(chainId !== "56") return alert("请先切换到 BNB Chain！");
+      const usdtAddr = USDT[56];
+      const data = web3.eth.abi.encodeFunctionCall({
+        name: 'transfer',
+        type: 'function',
+        inputs: [{ type: 'address' }, { type: 'uint256' }]
+      }, [to, web3.utils.toWei(amount, 'mwei')]);
+
+      const tx = await web3.eth.sendTransaction({
+        from: userAddress,
+        to: usdtAddr,
+        data: data,
+        ...gasOpt
+      });
+      alert("✅ BSC-USDT 转账成功！哈希：" + tx.transactionHash);
     }
   } catch (e) {
-    alert("转账失败：" + e.message);
+    alert("❌ 转账失败：" + e.message);
   }
 }
 
