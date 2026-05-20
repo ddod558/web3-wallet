@@ -3,11 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>多链钱包（双模式·Token Core加密+创建钱包）</title>
-  <script src="https://cdn.jsdelivr.net/npm/web3@4.0.1/dist/web3.min.js"></script>
-  <!-- Token Core 官方内核 -->
+  <title>多链钱包（三模式·Token Core稳定版）</title>
+  <!-- 必须先加载 Token Core，再加载其他脚本 -->
   <script src="https://cdn.jsdelivr.net/npm/@trustwallet/wallet-core@3.4.0/dist/browser/wallet-core.js"></script>
-  <!-- AES 加密库 -->
+  <script src="https://cdn.jsdelivr.net/npm/web3@4.0.1/dist/web3.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.2.0/crypto-js.min.js"></script>
   <style>
     * {
@@ -131,7 +130,7 @@
 </head>
 <body>
   <div class="container">
-    <h1 class="main-title">多链钱包（双模式）</h1>
+    <h1 class="main-title">多链钱包（三模式）</h1>
 
     <div class="card">
       <h3 class="card-title">主网切换中心</h3>
@@ -191,6 +190,15 @@
   </div>
 
 <script>
+// 全局标记：Token Core 是否初始化完成
+let coreReady = false;
+
+// 等待页面完全加载后再初始化 Token Core
+window.addEventListener('load', async () => {
+  await WalletCore.init();
+  coreReady = true;
+});
+
 // 链配置
 const RPC = {
   1: "https://mainnet.infura.io/v3/YOUR_KEY",
@@ -218,12 +226,6 @@ let encryptedPrivateKey = null;
 let sessionPwd = null;
 let tempMnemonic = null;
 
-// 初始化 Token Core
-async function initTokenCore() {
-  await WalletCore.init();
-}
-initTokenCore();
-
 // 面板切换
 function showImport(){
   document.getElementById("importBox").style.display="block";
@@ -235,8 +237,10 @@ function showCreate(){
   document.getElementById("mnemonicView").style.display="none";
 }
 
-// ========== 1. Token Core 创建钱包（生成助记词+私钥） ==========
+// ========== 1. Token Core 创建钱包（增加就绪判断） ==========
 async function createWallet(){
+  if (!coreReady) return alert("Token Core 内核正在加载，请稍后再试！");
+
   const pwd = document.getElementById("pwdCreate").value.trim();
   if(!pwd) return alert("请设置加密密码");
 
@@ -267,14 +271,15 @@ async function createWallet(){
     dom.style.display = "block";
     dom.innerHTML = "✅ Token Core 创建钱包成功：" + userAddress;
 
-    // 助记词只在内存临时保存，页面关闭即销毁
   }catch(e){
     alert("创建钱包失败："+e.message);
   }
 }
 
-// ========== 2. Token Core 导入私钥（AES加密） ==========
+// ========== 2. Token Core 导入私钥（AES加密，增加就绪判断） ==========
 async function importByTokenCore(){
+  if (!coreReady) return alert("Token Core 内核正在加载，请稍后再试！");
+
   const pkHex = document.getElementById("privateKey").value.trim();
   const pwd = document.getElementById("pwdImport").value.trim();
   if(!pkHex || !pwd) return alert("请输入私钥和加密密码");
@@ -337,6 +342,7 @@ async function connectWallet() {
 // ========== 转账：Token Core 底层签名 ==========
 async function sendTx() {
   if (!web3 && !isLocalWallet) return alert("请先连接钱包");
+  if (isLocalWallet && !coreReady) return alert("Token Core 内核未就绪");
 
   const chainId = document.getElementById("network").value;
   const token = document.getElementById("token").value;
